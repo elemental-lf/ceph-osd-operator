@@ -1,0 +1,9 @@
+---
+etcd_namespace: "{{ meta.namespace }}"
+etcd_app_label: "etcd"
+etcd_cluster_name: "example-etcd-cluster"
+etcd_cluster_pods: []
+
+etcd_new_members: []
+etcd_remove_members: []
+etcd_remove_pods: []

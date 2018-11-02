@@ -1,0 +1,33 @@
+apiVersion: ceph.elemental.net/v1alpha1
+kind: CephOSDs
+metadata:
+  name: ceph-osds
+spec:
+  images:
+    tags:
+      ceph_osd: 'docker.io/ceph/daemon:v3.2.0-stable-3.2-mimic-centos-7-x86_64'
+      fluentbit: 'docker.io/fluent/fluent-bit:0.12.19'
+      dep_check: 'quay.io/stackanetes/kubernetes-entrypoint:v0.3.1'
+    pull_policy: "IfNotPresent"
+  storage:
+    - hosts:
+      - worker041.example.com
+      - worker042.example.com
+      - worker043.example.com
+      - worker044.example.com
+      - worker045.example.com
+      - worker046.example.com
+      - worker047.example.com
+      osds:
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-1'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part1'
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-2'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part2'
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-3'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part3'
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-4'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part4'
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-5'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part5'
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-6'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part6'

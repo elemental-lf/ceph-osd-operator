@@ -1,0 +1,5 @@
+---
+- version: v1alpha1
+  group: ceph.elemental.net
+  kind: CephOSDs
+  playbook: /opt/ansible/playbook.yaml
