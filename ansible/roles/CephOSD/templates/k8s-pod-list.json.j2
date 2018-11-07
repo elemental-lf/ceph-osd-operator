@@ -1,0 +1,15 @@
+{% set pods = {} %}
+{% for item in k8s_gvks %}
+{%   set host = item.metadata.annotations['ceph.elemental.net/host'] %}
+{%   set osd = {} %}
+{%   set _ = osd.update({'data': item.metadata.annotations['ceph.elemental.net/data']}) %}
+{%   if 'ceph.elemental.net/db' in item.metadata.annotations %}
+{%     set _ = osd.update({'db': item.metadata.annotations['ceph.elemental.net/db']}) %}
+{%   endif %}
+{%   if 'ceph.elemental.net/wal' in item.metadata.annotations %}
+{%     set _ = osd.update({'wal': item.metadata.annotations['ceph.elemental.net/wal']}) %}
+{%   endif %}
+{%   set _ = pods.update({'{}:{}'.format(host, osd.data): {'host': host, 'osd': osd}}) %}
+{% endfor %}
+
+{{ pods | to_json }}

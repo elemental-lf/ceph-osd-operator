@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+import sys
+from prance import ResolvingParser
+from ruamel.yaml import YAML
+
+def remove_k8s_extentions(schema):
+  if isinstance(schema, dict):
+      for k in list(schema.keys()):
+          if k.startswith('x-kubernetes-'):
+              del schema[k]
+          else:
+              remove_k8s_extentions(schema[k])
+
+parser = ResolvingParser('ceph_v1alpha1_cephosd_schema.yaml', backend = 'openapi-spec-validator')
+schema = parser.specification['components']['schemas']['CephOSD']
+remove_k8s_extentions(schema)
+
+yaml=YAML(typ='safe') 
+with open('ceph_v1alpha1_cephosd_crd.yaml.tmpl', 'r') as f:
+  base = yaml.load(f)
+
+base['spec']['validation']['openAPIV3Schema'] = schema
+
+with open('ceph_v1alpha1_cephosd_crd.yaml', 'w') as f:
+  yaml.dump(base, f)

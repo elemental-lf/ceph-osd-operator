@@ -1,5 +1,0 @@
----
-ceph_osd_namespace: "{{ meta.namespace }}"
-ceph_osd_operator_label: "ceph-osd"
-ceph_osd_cluster_name: "example-ceph_osd-cluster"
-ceph_osd_cluster_pods: []

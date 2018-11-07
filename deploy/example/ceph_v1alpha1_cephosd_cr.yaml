@@ -1,0 +1,26 @@
+apiVersion: ceph.elemental.net/v1alpha1
+kind: CephOSD
+metadata:
+  name: ceph-osds
+spec:
+  storage:
+    - hosts:
+      - worker041.example.com
+      - worker042.example.com
+      osds:
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-1'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part1'
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-2'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part2'
+  podTemplate:
+    apiVersion: v1
+    kind: Pod
+    spec:
+      containers:
+      - image: busybox
+        command:
+        - sleep
+        - "365d"
+        imagePullPolicy: IfNotPresent
+        name: busybox
+      restartPolicy: Always

@@ -1,0 +1,10 @@
+{% set pods = {} %}
+{% for item in ceph_osd_storage %}
+{%   for host in item.hosts %}
+{%      for osd in item.osds %}
+{%        set _ = pods.update({'{}:{}'.format(host, osd.data): {'host': host, 'osd': osd} }) %}
+{%      endfor %}
+{%   endfor %}
+{% endfor %}
+
+{{ pods | to_json }}

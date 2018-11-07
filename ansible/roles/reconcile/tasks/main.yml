@@ -1,3 +1,0 @@
----
-- name: reconcile pods
-  include_tasks: reconcile_pods.yaml

@@ -1,7 +1,0 @@
-- hosts: localhost
-  tasks:
-  - debug: msg="Running Ceph OSD Ansible Operator Playbook"
-#  - import_role:
-#      name: "lookup"
-#  - import_role:
-#      name: "reconcile"
