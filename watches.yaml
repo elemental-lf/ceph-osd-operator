@@ -2,4 +2,4 @@
 - version: v1alpha1
   group: ceph.elemental.net
   kind: CephOSD
-  role: /opt/ansible/roles/CephOSD
+  playbook: /opt/ansible/playbook.yaml
