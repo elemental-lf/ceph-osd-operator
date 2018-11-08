@@ -1,15 +1,34 @@
-{% set pods = {} %}
+{% set uptodate = {} %}
+{% set outofdate = {} %}
+{% set invalid = [] %}
+{% set terminating = [] %}
 {% for item in k8s_gvks %}
-{%   set host = item.metadata.annotations['ceph.elemental.net/host'] %}
-{%   set osd = {} %}
-{%   set _ = osd.update({'data': item.metadata.annotations['ceph.elemental.net/data']}) %}
-{%   if 'ceph.elemental.net/db' in item.metadata.annotations %}
-{%     set _ = osd.update({'db': item.metadata.annotations['ceph.elemental.net/db']}) %}
+{%   if 'deletionTimestamp' in item.metadata %}
+{%     set _ = terminating.append(item.metadata.name) %}
+{%   elif [ceph_osd_cr_api_group + '/host', ceph_osd_cr_api_group + '/pod-template-hash', ceph_osd_cr_api_group + '/data']
+                                                                        is subset(item.metadata.annotations.keys()) %}
+{%     set host = item.metadata.annotations[ceph_osd_cr_api_group + '/host'] %}
+{%     set pod_template_hash =  item.metadata.annotations[ceph_osd_cr_api_group + '/pod-template-hash'] %}
+{%     set osd = {} %}
+{%     set osd_data = item.metadata.annotations[ceph_osd_cr_api_group + '/data']%}
+{%     set _ = osd.update({'data': osd_data}) %}
+{%     if (ceph_osd_cr_api_group + '/db') in item.metadata.annotations %}
+{%       set _ = osd.update({'db': item.metadata.annotations[ceph_osd_cr_api_group + '/db']}) %}
+{%     endif %}
+{%     if (ceph_osd_cr_api_group + '/wal') in item.metadata.annotations %}
+{%       set _ = osd.update({'wal': item.metadata.annotations[ceph_osd_cr_api_group + '/wal']}) %}
+{%     endif %}
+{%     set osd_name = 'osd-' + host + '-' + osd_data | regex_replace('.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-') %}
+{%     if osd_name != item.metadata.name %}
+{%        set _ = invalid.append(item.metadata.name) %}
+{%     elif pod_template_hash == ceph_osd_pod_template_hash %}
+{%       set _ = uptodate.update({osd_name: {'host': host, 'osd': osd}}) %}
+{%     else %}
+{%       set _ = outofdate.update({osd_name: {'host': host, 'osd': osd}}) %}
+{%     endif %}
+{%   else %}
+{%     set _ = invalid.append(item.metadata.name) %}
 {%   endif %}
-{%   if 'ceph.elemental.net/wal' in item.metadata.annotations %}
-{%     set _ = osd.update({'wal': item.metadata.annotations['ceph.elemental.net/wal']}) %}
-{%   endif %}
-{%   set _ = pods.update({'{}:{}'.format(host, osd.data): {'host': host, 'osd': osd}}) %}
 {% endfor %}
 
-{{ pods | to_json }}
+{{ { 'uptodate': uptodate, 'outofdate': outofdate, 'invalid': invalid, 'terminating': terminating } | to_json }}

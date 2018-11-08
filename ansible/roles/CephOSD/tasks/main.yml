@@ -32,25 +32,13 @@
   set_fact:
     ceph_osd_pods_configured: "{{ lookup('template', 'configured-pod-list.json.j2') | from_json }}"
 
-- name: write pod manifests for troubleshooting
-  copy:
-    content: "{{ ceph_osd_pod_template | combine(lookup('template', 'pod-overrides.yaml.j2') | from_yaml, recursive=True) | to_nice_yaml }}"
-    dest: "/tmp/{{ meta.name }}-pod-{{ ceph_osd_pod_name }}.yaml"
-  vars:
-    ceph_osd_pod_name: "{{ item.value.host }}-{{ item.value.osd.data | regex_replace('.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-') }}"
-    ceph_osd_host: "{{ item.value.host }}"
-    ceph_osd_data: "{{ item.value.osd.data }}"
-    ceph_osd_db: "{{ item.value.osd.db | default(None) }}"
-    ceph_osd_wal: "{{ item.value.osd.wal | default(None) }}"
-  loop: "{{ lookup('dict', ceph_osd_pods_configured) }}"
-
 - name: calculate missing pods
   set_fact:
-    ceph_osd_pods_missing: "{{ ceph_osd_pods_configured.keys() | difference(ceph_osd_pods.keys()) | list }}"
+    ceph_osd_pods_missing: "{{ ceph_osd_pods_configured.keys() | difference(ceph_osd_pods.uptodate.keys() | union(ceph_osd_pods.outofdate.keys()) | union(ceph_osd_pods.terminating)) | list }}"
 
 - name: calculate superfluous pods
   set_fact:
-    ceph_osd_pods_superfluous: "{{ ceph_osd_pods.keys() | difference(ceph_osd_pods_configured.keys()) | list }}"
+    ceph_osd_pods_superfluous: "{{ ceph_osd_pods.uptodate.keys() | union(ceph_osd_pods.outofdate.keys()) | difference(ceph_osd_pods_configured.keys()) | list }}"
 
 - debug:
     var: ceph_osd_pods_missing
@@ -58,19 +46,23 @@
 - debug:
     var: ceph_osd_pods_superfluous
 
-- name: create and update pods
+- debug:
+    var: ceph_osd_pods.invalid
+
+- debug:
+    var: ceph_osd_pods.outofdate
+
+- debug:
+    var: ceph_osd_pods.terminating
+
+- name: delete invalid pods
   k8s:
-    state: present
-    definition: "{{ ceph_osd_pod_template | combine(lookup('template', 'pod-overrides.yaml.j2') | from_yaml, recursive=True) }}"
-    force: True
-  vars:
-    ceph_osd_pod_name: "{{ item.value.host }}-{{ item.value.osd.data | regex_replace('.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-') }}"
-    ceph_osd_host: "{{ item.value.host }}"
-    ceph_osd_data: "{{ item.value.osd.data }}"
-    ceph_osd_db: "{{ item.value.osd.db | default(None) }}"
-    ceph_osd_wal: "{{ item.value.osd.wal | default(None) }}"
-  when: item.key in ceph_osd_pods_missing
-  loop: "{{ lookup('dict', ceph_osd_pods_configured) }}"
+    state: absent
+    api_version: v1
+    kind: Pod
+    namespace: "{{ ceph_osd_cr_namespace }}"
+    name: "{{ item }}"
+  loop: "{{ ceph_osd_pods.invalid }}"
 
 - name: delete superfluous pods
   k8s:
@@ -78,8 +70,20 @@
     api_version: v1
     kind: Pod
     namespace: "{{ ceph_osd_cr_namespace }}"
-    name: "{{ ceph_osd_pod_name }}"
+    name: "{{ item }}"
+  when: item in ceph_osd_pods_superfluous
+  loop: "{{ ceph_osd_pods.uptodate.keys() }}"
+
+- name: create pods
+  k8s:
+    state: present
+    definition: "{{ ceph_osd_pod_template | combine(lookup('template', 'pod-overrides.yaml.j2') | from_yaml, recursive=True) }}"
+    force: True
   vars:
-    ceph_osd_pod_name: "{{ item.value.host }}-{{ item.value.osd.data | regex_replace('.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-') }}"
-  when: item.key in ceph_osd_pods_superfluous
-  loop: "{{ lookup('dict', ceph_osd_pods) }}"
+    ceph_osd_pod_name: "{{ item.key }}"
+    ceph_osd_host: "{{ item.value.host }}"
+    ceph_osd_data: "{{ item.value.osd.data }}"
+    ceph_osd_db: "{{ item.value.osd.db | default(None) }}"
+    ceph_osd_wal: "{{ item.value.osd.wal | default(None) }}"
+  when: item.key in ceph_osd_pods_missing
+  loop: "{{ lookup('dict', ceph_osd_pods_configured) }}"
