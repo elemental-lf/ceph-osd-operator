@@ -34,7 +34,7 @@
 
 - name: calculate missing pods
   set_fact:
-    ceph_osd_pods_missing: "{{ ceph_osd_pods_configured.keys() | difference(ceph_osd_pods.uptodate.keys() | union(ceph_osd_pods.outofdate.keys()) | union(ceph_osd_pods.terminating)) | list }}"
+    ceph_osd_pods_missing: "{{ ceph_osd_pods_configured.keys() | difference(ceph_osd_pods.uptodate.keys() | union(ceph_osd_pods.outofdate.keys())) | list }}"
 
 - name: calculate superfluous pods
   set_fact:
