@@ -5,8 +5,9 @@
 {% for item in k8s_gvks %}
 {%   if 'deletionTimestamp' in item.metadata %}
 {%     set _ = terminating.append(item.metadata.name) %}
-{%   elif [ceph_osd_cr_api_group + '/host', ceph_osd_cr_api_group + '/pod-template-hash', ceph_osd_cr_api_group + '/data']
-                                                                        is subset(item.metadata.annotations.keys()) %}
+{%   elif [ceph_osd_cr_api_group + '/host',
+           ceph_osd_cr_api_group + '/pod-template-hash',
+           ceph_osd_cr_api_group + '/data'] is subset(item.metadata.annotations.keys()) %}
 {%     set host = item.metadata.annotations[ceph_osd_cr_api_group + '/host'] %}
 {%     set pod_template_hash =  item.metadata.annotations[ceph_osd_cr_api_group + '/pod-template-hash'] %}
 {%     set osd = {} %}
@@ -17,7 +18,7 @@
 {%     if (ceph_osd_cr_api_group + '/wal') in item.metadata.annotations %}
 {%       set _ = osd.update({'wal': item.metadata.annotations[ceph_osd_cr_api_group + '/wal']}) %}
 {%     endif %}
-{%     set pod_name_prefix = 'osd-{}-{}-'.format(host | regex_replace('^([^\.]+)(?:\..+)?$', '\\1'), osd.data | regex_replace('^.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')) %}
+{%     set pod_name_prefix = ('osd-{}-{}-'.format(host | regex_replace('^([^\.]+)(?:\..+)?$', '\\1'), osd.data | regex_replace('^.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')))[:58] %}
 {%     set pod_key = '{}:{}'.format(host, osd.data) %}
 {%     if not item.metadata.name.startswith(pod_name_prefix) %}
 {%        set _ = invalid.append(item.metadata.name) %}
