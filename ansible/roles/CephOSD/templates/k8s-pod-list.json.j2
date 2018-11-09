@@ -18,8 +18,8 @@
 {%     if (ceph_osd_cr_api_group + '/wal') in item.metadata.annotations %}
 {%       set _ = osd.update({'wal': item.metadata.annotations[ceph_osd_cr_api_group + '/wal']}) %}
 {%     endif %}
-{%     set osd_name = 'osd-' + host + '-' + osd_data | regex_replace('.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-') %}
-{%     if osd_name != item.metadata.name %}
+{%     set osd_name = 'osd-{}-{}'.format(host, osd.data | regex_replace('.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')) %}
+{%     if not item.metadata.name.startswith(osd_name) %}
 {%        set _ = invalid.append(item.metadata.name) %}
 {%     elif pod_template_hash == ceph_osd_pod_template_hash %}
 {%       set _ = uptodate.update({osd_name: {'host': host, 'osd': osd}}) %}
