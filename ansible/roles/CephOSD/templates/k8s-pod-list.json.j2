@@ -2,6 +2,7 @@
 {% set outofdate = {} %}
 {% set invalid = [] %}
 {% set terminating = [] %}
+
 {% for item in k8s_gvks %}
 {%   if 'deletionTimestamp' in item.metadata %}
 {%     set _ = terminating.append(item.metadata.name) %}

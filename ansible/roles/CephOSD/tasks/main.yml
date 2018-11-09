@@ -24,13 +24,13 @@
     set_fact:
       k8s_gvks: []
 
-- name: build list of pods from running pods
-  set_fact:
-    ceph_osd_pods: "{{ lookup('template', 'k8s-pod-list.json.j2') | from_json }}"
-
 - name: build list of pods from configuration
   set_fact:
     ceph_osd_pods_configured: "{{ lookup('template', 'configured-pod-list.json.j2') | from_json }}"
+
+- name: build list of pods from running pods
+  set_fact:
+    ceph_osd_pods: "{{ lookup('template', 'k8s-pod-list.json.j2') | from_json }}"
 
 - name: calculate missing pods
   set_fact:
@@ -74,7 +74,7 @@
   when: item in ceph_osd_pods_superfluous
   loop: "{{ ceph_osd_pods.uptodate.keys() }}"
 
-- name: create pods
+- name: create missing pods
   k8s:
     state: present
     definition: "{{ ceph_osd_pod_template | combine(lookup('template', 'pod-overrides.yaml.j2') | from_yaml, recursive=True) }}"
@@ -87,3 +87,30 @@
     ceph_osd_wal: "{{ item.value.osd.wal | default(None) }}"
   when: item.key in ceph_osd_pods_missing
   loop: "{{ lookup('dict', ceph_osd_pods_configured) }}"
+
+- name: upgrade one out-of-date pods by recreating it
+  block:
+  - set_fact:
+      # Sorting ensures that we'll advance host by host
+      ceph_osd_upgrade_candidate: "{{ ceph_osd_pods.outofdate[(ceph_osd_pods.outofdate.keys() | sort)[0]] }}"
+
+  - name: delete out-of-date pod
+    k8s:
+      state: absent
+      api_version: v1
+      kind: Pod
+      namespace: "{{ ceph_osd_cr_namespace }}"
+      name: "{{ ceph_osd_upgrade_candidate.pod_name }}"
+
+  - name: create new up-to-date pod
+    k8s:
+      state: present
+      definition: "{{ ceph_osd_pod_template | combine(lookup('template', 'pod-overrides.yaml.j2') | from_yaml, {'metadata': {'annotations': {ceph_osd_cr_api_group + '/wait-for-ready': ''}}}, recursive=True) }}"
+      force: True
+    vars:
+      ceph_osd_pod_name: "{{ ceph_osd_upgrade_candidate.pod_name_prefix + lookup('password', '/dev/null length=5 chars=ascii_lowercase,digits') }}"
+      ceph_osd_host: "{{ ceph_osd_upgrade_candidate.host }}"
+      ceph_osd_data: "{{ ceph_osd_upgrade_candidate.osd.data }}"
+      ceph_osd_db: "{{ ceph_osd_upgrade_candidate.osd.db | default(None) }}"
+      ceph_osd_wal: "{{ ceph_osd_upgrade_candidate.osd.wal | default(None) }}"
+  when: ceph_osd_pods.outofdate | length > 0
