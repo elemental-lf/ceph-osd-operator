@@ -80,7 +80,7 @@
     definition: "{{ ceph_osd_pod_template | combine(lookup('template', 'pod-overrides.yaml.j2') | from_yaml, recursive=True) }}"
     force: True
   vars:
-    ceph_osd_pod_name: "{{ '{}-{}'.format(item.key, lookup('password', '/dev/null length=4 chars=ascii_lowercase,digits')) }}"
+    ceph_osd_pod_name: "{{ item.value.pod_name_prefix + lookup('password', '/dev/null length=4 chars=ascii_lowercase,digits') }}"
     ceph_osd_host: "{{ item.value.host }}"
     ceph_osd_data: "{{ item.value.osd.data }}"
     ceph_osd_db: "{{ item.value.osd.db | default(None) }}"

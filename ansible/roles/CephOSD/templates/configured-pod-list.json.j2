@@ -2,8 +2,9 @@
 {% for item in ceph_osd_storage %}
 {%   for host in item.hosts %}
 {%      for osd in item.osds %}
-{%        set osd_name = 'osd-{}-{}'.format(host, osd.data | regex_replace('.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')) %}
-{%        set _ = pods.update({osd_name: {'host': host, 'osd': osd} }) %}
+{%        set pod_name_prefix = 'osd-{}-{}-'.format(host | regex_replace('^([^\.]+)(?:\..+)?$', '\\1'), osd.data | regex_replace('^.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')) %}
+{%        set pod_key = '{}:{}'.format(host, osd.data) %}
+{%        set _ = pods.update({pod_key: {'host': host, 'pod_name_prefix': pod_name_prefix, 'osd': osd}}) %}
 {%      endfor %}
 {%   endfor %}
 {% endfor %}
