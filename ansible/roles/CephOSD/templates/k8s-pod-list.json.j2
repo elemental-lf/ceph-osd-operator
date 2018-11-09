@@ -10,22 +10,28 @@
            ceph_osd_cr_api_group + '/data'] is subset(item.metadata.annotations.keys()) %}
 {%     set host = item.metadata.annotations[ceph_osd_cr_api_group + '/host'] %}
 {%     set pod_template_hash =  item.metadata.annotations[ceph_osd_cr_api_group + '/pod-template-hash'] %}
+
 {%     set osd = {} %}
 {%     set _ = osd.update({'data': item.metadata.annotations[ceph_osd_cr_api_group + '/data']}) %}
-{%     if (ceph_osd_cr_api_group + '/db') in item.metadata.annotations %}
-{%       set _ = osd.update({'db': item.metadata.annotations[ceph_osd_cr_api_group + '/db']}) %}
-{%     endif %}
-{%     if (ceph_osd_cr_api_group + '/wal') in item.metadata.annotations %}
-{%       set _ = osd.update({'wal': item.metadata.annotations[ceph_osd_cr_api_group + '/wal']}) %}
-{%     endif %}
+{%     set _ = osd.update({'db': item.metadata.annotations[ceph_osd_cr_api_group + '/db']})
+                    if (ceph_osd_cr_api_group + '/db') in item.metadata.annotations %}
+{%     set _ = osd.update({'wal': item.metadata.annotations[ceph_osd_cr_api_group + '/wal']})
+                    if (ceph_osd_cr_api_group + '/wal') in item.metadata.annotations %}
+
 {%     set pod_name_prefix = ('osd-{}-{}-'.format(host | regex_replace('^([^\.]+)(?:\..+)?$', '\\1'), osd.data | regex_replace('^.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')))[:58] %}
 {%     set pod_key = '{}:{}'.format(host, osd.data) %}
 {%     if not item.metadata.name.startswith(pod_name_prefix) %}
 {%        set _ = invalid.append(item.metadata.name) %}
 {%     elif pod_template_hash == ceph_osd_pod_template_hash %}
-{%       set _ = uptodate.update({pod_key: {'host': host, 'pod_name_prefix': pod_name_prefix, 'osd': osd}}) %}
+{%       set _ = uptodate.update({pod_key: {'host': host,
+                                            'pod_name': item.metadata.name,
+                                            'pod_name_prefix': pod_name_prefix,
+                                            'osd': osd}}) %}
 {%     else %}
-{%       set _ = outofdate.update({pod_key: {'host': host, 'pod_name_prefix': pod_name_prefix, 'osd': osd}}) %}
+{%       set _ = outofdate.update({pod_key: {'host': host,
+                                             'pod_name': item.metadata.name,
+                                             'pod_name_prefix': pod_name_prefix,
+                                             'osd': osd}}) %}
 {%     endif %}
 {%   else %}
 {%     set _ = invalid.append(item.metadata.name) %}
