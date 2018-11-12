@@ -1,0 +1,3 @@
+#!/bin/bash
+kubectl exec -it $(kubectl get pod -l name=ceph-osd-operator -o 'jsonpath={.items[0].metadata.name}') -- \
+  cat /tmp/ansible-operator/runner/ceph.elemental.net/v1alpha1/CephOSD/default/ceph-osds/artifacts/$1/stdout | less
