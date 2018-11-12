@@ -1,6 +1,6 @@
 FROM elementalnet/ansible-operator
 USER root
-RUN true
+RUN echo 'jinja2_extensions = jinja2.ext.do,jinja2.ext.loopcontrols' >> /etc/ansible/ansible.cfg
 
 RUN useradd -u ${USER_UID} ${USER_NAME}
 USER ${USER_NAME}
