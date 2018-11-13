@@ -19,8 +19,17 @@ spec:
       containers:
       - image: busybox
         command:
-        - sleep
-        - "365d"
+        - /bin/sh
+        - -c
+        - sleep 60; touch /tmp/healthy; sleep 365d
         imagePullPolicy: IfNotPresent
         name: busybox
+        readinessProbe:
+          exec:
+            command:
+            - stat
+            - /tmp/healthy
+          initialDelaySeconds: 2
+          periodSeconds: 5
       restartPolicy: Always
+      priorityClassName: system-cluster-critical
