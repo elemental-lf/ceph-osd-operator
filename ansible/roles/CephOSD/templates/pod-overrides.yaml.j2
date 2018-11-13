@@ -23,3 +23,13 @@ metadata:
     kind: {{ ceph_osd_cr_kind }}
     name: {{ ceph_osd_cr_name }}
     uid: {{ ceph_osd_cr_uid }}
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - "{{ ceph_osd_host }}"
