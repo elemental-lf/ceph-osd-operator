@@ -1,0 +1,17 @@
+{% set ceph_osd_pod_definition = ceph_osd_pod_template
+                                  | combine(lookup('template', 'pod-definition-additions.yaml.j2') | from_yaml, recursive=True) %}
+{% set containers_list = [] %}
+{% if 'initContainers' in ceph_osd_pod_definition.spec and ceph_osd_pod_definition.spec.initContainers %}
+{%   do containers_list.append(ceph_osd_pod_definition.spec.initContainers) %}
+{% endif %}
+{% do containers_list.append(ceph_osd_pod_definition.spec.containers) %}
+{% for containers in containers_list %}
+{%   for container in containers %}
+{%     do container.update({'env': []}) if 'env' not in container %}
+{%     do container.env.append({'name': 'OSD_DEVICE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.annotations[\'{}/data\']'.format(ceph_osd_cr_api_group)}}}) %}
+{%     do container.env.append({'name': 'OSD_DB_DEVICE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.annotations[\'{}/db\']'.format(ceph_osd_cr_api_group)}}}) %}
+{%     do container.env.append({'name': 'OSD_WAL_DEVICE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.annotations[\'{}/wal\']'.format(ceph_osd_cr_api_group)}}}) %}
+{%   endfor %}
+{% endfor %}
+
+{{ ceph_osd_pod_definition | to_json }}

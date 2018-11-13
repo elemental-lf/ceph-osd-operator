@@ -95,7 +95,7 @@
 - name: create missing pods
   k8s:
     state: present
-    definition: "{{ ceph_osd_pod_template | combine(lookup('template', 'pod-overrides.yaml.j2') | from_yaml, recursive=True) }}"
+    definition: "{{ lookup('template', 'render-pod-definition.json.j2') | from_json }}"
     force: True
   vars:
     ceph_osd_pod_name: "{{ item.value.pod_name_prefix + lookup('password', '/dev/null length=5 chars=ascii_lowercase,digits') }}"
@@ -162,7 +162,7 @@
   - name: create new up-to-date pod
     k8s:
       state: present
-      definition: "{{ ceph_osd_pod_template | combine(lookup('template', 'pod-overrides.yaml.j2') | from_yaml, {'metadata': {'annotations': {ceph_osd_cr_api_group + '/upgrade-state': 'wait-for-ready'}}}, recursive=True) }}"
+      definition: "{{ lookup('template', 'render-pod-definition.json.j2') | from_json | combine({'metadata': {'annotations': {ceph_osd_cr_api_group + '/upgrade-state': 'wait-for-ready'}}}, recursive=True) }}"
       force: True
     vars:
       ceph_osd_pod_name: "{{ ceph_osd_upgrade_candidate.pod_name_prefix + lookup('password', '/dev/null length=5 chars=ascii_lowercase,digits') }}"

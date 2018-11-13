@@ -22,6 +22,9 @@ spec:
         - /bin/sh
         - -c
         - sleep 60; touch /tmp/healthy; sleep 365d
+        env:
+        - name: "TEST"
+          value: "test123"
         imagePullPolicy: IfNotPresent
         name: busybox
         readinessProbe:
