@@ -32,43 +32,46 @@
   set_fact:
     ceph_osd_pods: "{{ lookup('template', 'k8s-pod-list.json.j2') | from_json }}"
 
+- name: build union of all configured and already existing pods
+  set_fact:
+    ceph_osd_pods_existing: >
+      {{ ceph_osd_pods.uptodate | combine(ceph_osd_pods.outofdate, ceph_osd_pods.ready, ceph_osd_pods.unready) }}
+
 - name: calculate missing pods
   set_fact:
-    ceph_osd_pods_missing: "{{ ceph_osd_pods_configured.keys() | difference(ceph_osd_pods.uptodate.keys() | union(ceph_osd_pods.outofdate.keys()) | union(ceph_osd_pods.ready.keys()) | union(ceph_osd_pods.unready.keys())) | list }}"
+    ceph_osd_pods_missing: "{{ ceph_osd_pods_configured.keys() | difference(ceph_osd_pods_existing.keys()) | list }}"
 
 - name: calculate superfluous pods
   set_fact:
-    ceph_osd_pods_superfluous: "{{ ceph_osd_pods.uptodate.keys() | union(ceph_osd_pods.outofdate.keys()) | difference(ceph_osd_pods_configured.keys()) | list }}"
+    ceph_osd_pods_superfluous: "{{ ceph_osd_pods_existing.keys() | difference(ceph_osd_pods_configured.keys()) | list }}"
 
 - name: Missing pods
   debug:
-    var: item
-  loop: "{{ ceph_osd_pods_missing }}"
+    msg: "Missing: {{ ceph_osd_pods_missing | join(', ') }}"
+
+- name: Superfluous pods
+  debug:
+    msg: "Superfluous: {{ ceph_osd_pods_superfluous | join(', ') }}"
 
 - name: Invalid pods
   debug:
-    var: item
-  loop: "{{ ceph_osd_pods.invalid }}"
+    msg: "Invalid: {{ ceph_osd_pods.invalid | join(', ') }}"
 
 - name: Up-to-date pods
   debug:
-    var: item
-  loop: "{{ ceph_osd_pods.uptodate.keys() }}"
+    msg: "Up-to-date: {{ ceph_osd_pods.uptodate.keys() | join(', ') }}"
 
 - name: Out-of-date pods
   debug:
-    var: item
-  loop: "{{ ceph_osd_pods.outofdate.keys() }}"
+    msg: "Out-of-date: {{ ceph_osd_pods.outofdate.keys() | join(', ') }}"
 
 - name: Ready pods
   debug:
-    var: item
-  loop: "{{ ceph_osd_pods.ready.keys() }}"
+    msg: "Ready: {{ ceph_osd_pods.ready.keys() | join(', ') }}"
 
 - name: Unready pods
   debug:
-    var: item
-  loop: "{{ ceph_osd_pods.unready.keys() }}"
+    msg: "Unready: {{ ceph_osd_pods.unready.keys() | join(', ') }}"
 
 - name: delete invalid pods
   k8s:
@@ -85,9 +88,9 @@
     api_version: v1
     kind: Pod
     namespace: "{{ ceph_osd_cr_namespace }}"
-    name: "{{ item }}"
-  when: item in ceph_osd_pods_superfluous
-  loop: "{{ ceph_osd_pods.uptodate.keys() }}"
+    name: "{{ item.value.pod.metadata.name }}"
+  when: item.key in ceph_osd_pods_superfluous
+  loop: "{{ query('dict', ceph_osd_pods_existing) }}"
 
 - name: create missing pods
   k8s:
