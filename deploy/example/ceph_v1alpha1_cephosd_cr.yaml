@@ -32,4 +32,4 @@ spec:
           initialDelaySeconds: 2
           periodSeconds: 5
       restartPolicy: Always
-      priorityClassName: system-cluster-critical
+      priorityClassName: ceph-osd
