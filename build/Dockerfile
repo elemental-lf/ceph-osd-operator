@@ -1,8 +1,10 @@
 FROM elementalnet/ansible-operator
 USER root
-RUN echo 'jinja2_extensions = jinja2.ext.do,jinja2.ext.loopcontrols' >> /etc/ansible/ansible.cfg
+RUN echo 'jinja2_extensions = jinja2.ext.do,jinja2.ext.loopcontrols' >> /etc/ansible/ansible.cfg && \
+	HOME=/tmp pip install --upgrade jinja2 && \
+	rm -rf /tmp/.cache/pip && \
+	useradd -u ${USER_UID} ${USER_NAME}
 
-RUN useradd -u ${USER_UID} ${USER_NAME}
 USER ${USER_NAME}
 
 ENV RESYNC_PERIOD=8
