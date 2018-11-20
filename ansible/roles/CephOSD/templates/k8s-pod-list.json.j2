@@ -60,7 +60,7 @@ The group the pod belongs to is determined by this logic:
 {%     elif pod_template_hash == ceph_osd_pod_template_hash %}
 {%       set ns = {} %}
 {%       do ns.update({'target_dict': uptodate}) %}
-{%       if (ceph_osd_cr_api_group + '/upgrade-state') in item.metadata.annotations and item.metadata.annotations[ceph_osd_cr_api_group + '/upgrade-state'] == 'wait-for-ready' %}
+{%       if (ceph_osd_cr_api_group + '/pod-state') in item.metadata.annotations and item.metadata.annotations[ceph_osd_cr_api_group + '/pod-state'] == 'wait-for-ready' %}
 {%         do ns.update({'pod_ready': False}) %}
 {%         for condition in item.status.conditions %}
 {%           if condition.type == 'Ready' and condition.status == 'True' %}

@@ -13,7 +13,7 @@
     ceph_osd_storage: "{{ _ceph_elemental_net_cephosd.spec.storage }}"
     ceph_osd_pod_template: "{{ _ceph_elemental_net_cephosd.spec.podTemplate }}"
     ceph_osd_pod_template_hash: "{{ lookup('dicthash', _ceph_elemental_net_cephosd.spec.podTemplate)[:16] }}"
-    ceph_osd_upgrade_domain: "{{ _ceph_elemental_net_cephosd.spec.upgradeDomain }}"
+    ceph_osd_update_domain: "{{ _ceph_elemental_net_cephosd.spec.updateDomain }}"
 
 - block:
     - name: lookup running pods
@@ -100,67 +100,67 @@
   when: item.key in ceph_osd_pods_missing
   loop: "{{ query('dict', ceph_osd_pods_configured) }}"
 
-- name: set upgrade-state of out-of-date pods to out-of-date
+- name: set pod-state of out-of-date pods to out-of-date
   k8s:
     state: present
     api_version: v1
     kind: Pod
     namespace: "{{ ceph_osd_cr_namespace }}"
     name: "{{ item.value.pod.metadata.name }}"
-    definition: "{{ {'metadata': {'annotations': {ceph_osd_cr_api_group + '/upgrade-state': 'out-of-date'}}} }}"
+    definition: "{{ {'metadata': {'annotations': {ceph_osd_cr_api_group + '/pod-state': 'out-of-date'}}} }}"
   when: >
-    (ceph_osd_cr_api_group + '/upgrade-state') not in item.value.pod.metadata.annotations or
-      item.value.pod.metadata.annotations[ceph_osd_cr_api_group + '/upgrade-state'] != 'out-of-date'
+    (ceph_osd_cr_api_group + '/pod-state') not in item.value.pod.metadata.annotations or
+      item.value.pod.metadata.annotations[ceph_osd_cr_api_group + '/pod-state'] != 'out-of-date'
   loop: "{{ query('dict', ceph_osd_pods.outofdate) }}"
 
-- name: set upgrade-state of ready pods to up-to-date
+- name: set pod-state of ready pods to up-to-date
   k8s:
     state: present
     api_version: v1
     kind: Pod
     namespace: "{{ ceph_osd_cr_namespace }}"
     name: "{{ item.value.pod.metadata.name }}"
-    definition: "{{ {'metadata': {'annotations': {ceph_osd_cr_api_group + '/upgrade-state': 'up-to-date'}}} }}"
+    definition: "{{ {'metadata': {'annotations': {ceph_osd_cr_api_group + '/pod-state': 'up-to-date'}}} }}"
   when: >
-    (ceph_osd_cr_api_group + '/upgrade-state') not in item.value.pod.metadata.annotations or
-      item.value.pod.metadata.annotations[ceph_osd_cr_api_group + '/upgrade-state'] != 'up-to-date'
+    (ceph_osd_cr_api_group + '/pod-state') not in item.value.pod.metadata.annotations or
+      item.value.pod.metadata.annotations[ceph_osd_cr_api_group + '/pod-state'] != 'up-to-date'
   loop: "{{ query('dict', ceph_osd_pods.ready) }}"
 
-- name: set upgrade-state of up-to-date pods to up-to-date
+- name: set pod-state of up-to-date pods to up-to-date
   k8s:
     state: present
     api_version: v1
     kind: Pod
     namespace: "{{ ceph_osd_cr_namespace }}"
     name: "{{ item.value.pod.metadata.name }}"
-    definition: "{{ {'metadata': {'annotations': {ceph_osd_cr_api_group + '/upgrade-state': 'up-to-date'}}} }}"
+    definition: "{{ {'metadata': {'annotations': {ceph_osd_cr_api_group + '/pod-state': 'up-to-date'}}} }}"
   when: >
-    (ceph_osd_cr_api_group + '/upgrade-state') not in item.value.pod.metadata.annotations or
-      item.value.pod.metadata.annotations[ceph_osd_cr_api_group + '/upgrade-state'] != 'up-to-date'
+    (ceph_osd_cr_api_group + '/pod-state') not in item.value.pod.metadata.annotations or
+      item.value.pod.metadata.annotations[ceph_osd_cr_api_group + '/pod-state'] != 'up-to-date'
   loop: "{{ query('dict', ceph_osd_pods.uptodate) }}"
 
 
-# Initializing ceph_osd_upgrade_candidates is necessary as when is evaluated for each loop item, see below.
+# Initializing ceph_osd_update_candidates is necessary as when is evaluated for each loop item, see below.
 - set_fact:
-    ceph_osd_upgrade_candidates: "{{ [] }}"
+    ceph_osd_update_candidates: "{{ [] }}"
 
-- name: upgrade out-of-date pod(s) by recreating it/them
+- name: update out-of-date pod(s) by recreating it/them
   block:
     - block:
         - set_fact:
             # Sorting ensures that we'll advance host by host
-            ceph_osd_upgrade_osd: "{{ (ceph_osd_pods.outofdate.keys() | sort)[0] }}"
+            ceph_osd_update_osd: "{{ (ceph_osd_pods.outofdate.keys() | sort)[0] }}"
         - set_fact:
-            ceph_osd_upgrade_candidates: "{{ [ceph_osd_pods.outofdate[ceph_osd_upgrade_osd]] }}"
-      when: ceph_osd_upgrade_domain == "OSD"
+            ceph_osd_update_candidates: "{{ [ceph_osd_pods.outofdate[ceph_osd_update_osd]] }}"
+      when: ceph_osd_update_domain == "OSD"
 
     - block:
         - set_fact:
-            ceph_osd_upgrade_host: "{{ (ceph_osd_pods.outofdate.values() | map(attribute='host') | unique | sort)[0] }}"
+            ceph_osd_update_host: "{{ (ceph_osd_pods.outofdate.values() | map(attribute='host') | unique | sort)[0] }}"
         - set_fact:
             # Requires Jinja2 >= 2.8
-            ceph_osd_upgrade_candidates: "{{ ceph_osd_pods.outofdate.values() | selectattr('host', 'equalto', ceph_osd_upgrade_host) | list }}"
-      when: ceph_osd_upgrade_domain == "Host"
+            ceph_osd_update_candidates: "{{ ceph_osd_pods.outofdate.values() | selectattr('host', 'equalto', ceph_osd_update_host) | list }}"
+      when: ceph_osd_update_domain == "Host"
 
     - name: delete out-of-date pod(s)
       k8s:
@@ -169,12 +169,12 @@
         kind: Pod
         namespace: "{{ ceph_osd_cr_namespace }}"
         name: "{{ item.pod.metadata.name }}"
-      loop: "{{ ceph_osd_upgrade_candidates }}"
+      loop: "{{ ceph_osd_update_candidates }}"
 
     - name: create new up-to-date pod(s)
       k8s:
         state: present
-        definition: "{{ lookup('template', 'render-pod-definition.json.j2') | from_json | combine({'metadata': {'annotations': {ceph_osd_cr_api_group + '/upgrade-state': 'wait-for-ready'}}}, recursive=True) }}"
+        definition: "{{ lookup('template', 'render-pod-definition.json.j2') | from_json | combine({'metadata': {'annotations': {ceph_osd_cr_api_group + '/pod-state': 'wait-for-ready'}}}, recursive=True) }}"
         force: true
       vars:
         ceph_osd_pod_name: "{{ item.pod_name_prefix + lookup('password', '/dev/null length=5 chars=ascii_lowercase,digits') }}"
@@ -182,5 +182,5 @@
         ceph_osd_data: "{{ item.osd.data }}"
         ceph_osd_db: "{{ item.osd.db | default(None) }}"
         ceph_osd_wal: "{{ item.osd.wal | default(None) }}"
-      loop: "{{ ceph_osd_upgrade_candidates }}"
+      loop: "{{ ceph_osd_update_candidates }}"
   when: ceph_osd_pods.outofdate | length > 0 and ceph_osd_pods.unready | length == 0

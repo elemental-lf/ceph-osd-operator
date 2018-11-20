@@ -12,7 +12,7 @@ spec:
         db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part1'
       - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-2'
         db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part2'
-  upgradeDomain: "Host"
+  updateDomain: "Host"
   podTemplate:
     apiVersion: v1
     kind: Pod

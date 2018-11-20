@@ -15,7 +15,7 @@ metadata:
 {% if ceph_osd_wal %}
     {{ ceph_osd_cr_api_group }}/wal: "{{ ceph_osd_wal }}"
 {% endif %}
-    {{ ceph_osd_cr_api_group }}/upgrade-state: "up-to-date"
+    {{ ceph_osd_cr_api_group }}/pod-state: "up-to-date"
   ownerReferences:
   - apiVersion: {{ ceph_osd_cr_api_version }}
     controller: True
