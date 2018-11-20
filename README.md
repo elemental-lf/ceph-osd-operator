@@ -1,1 +1,121 @@
-This is work in progress and not ready for general consumption!
+# Ceph OSD Operator
+
+This repository includes a Ceph OSD operator based on the [Ansible based variant](https://github.com/water-hole/ansible-operator)
+of the [Red Hat (formerly CoreOS) Operator SDK](https://github.com/operator-framework/operator-sdk).
+
+In contrast to [Rook](https://github.com/rook/rook) it is not a one-stop solution for deploying Ceph but only deals
+with the orchestration of the Ceph OSDs. To be a complete solution it needs further support. Currently 
+`ceph-osd-operator` is used in [ceph-with-helm](https://github.com/elemental-lf/ceph-with-helm) to form a complete
+container based installation of Ceph.
+
+This operator only supports Bluestore based deployments with `ceph-volume`. Separate devices for the RocksDB and 
+the WAL can be specified. Support for passing the WAL is untested as `ceph-with-helm` currently doesn't support it.
+The operator creates one pod per OSD. The `restartPolicy` on these pods should normally by `Always` to ensure that
+they are restarted automatically when they terminate unexpectedly. Missing pods will automatically be recreated by 
+the operator. During deployment of the pods `nodeAffinity` rules are injected into the pod definition to bind the pod
+to a specific node.
+
+Rolling updates of the pod configuration (including container images) can either be performed one OSD at a time or 
+on a host by host basis. At the moment there is no direct interaction between the operator and Ceph and the operator
+only watches the `Ready` condition of newly created pods. But if the readiness check is implemented correctly
+this should go a long way in making sure that the OSD is okay. If an updated OSD pod doesn't become ready the update
+process is halted and no further OSDs are updated without manual intervention.
+
+## Structure of the CephOSD custom resource
+
+```yaml
+apiVersion: ceph.elemental.net/v1alpha1
+kind: CephOSD
+metadata:
+  name: ceph-osds
+spec:
+  storage:
+    - hosts:
+      - worker041.example.com
+      - worker042.example.com
+      osds:
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-1'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part1'
+      - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-2'
+        db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part2'
+  updateDomain: "Host"
+  podTemplate:
+# [...]
+```
+
+* `storage` is a list of `hosts`/`osds` pairs. The cartesian product of each element of the `hosts` list and each
+  element of the `osds` is formed and an OSD pod is created for each resulting host/osd pair. This is repeated for
+  each element of the `storage` list.
+* The hostnames of a `hosts` list must match your Kubernetes node names as they are used for constructing the 
+  `nodeAffinity` rules.
+* Each element of an `osds` list consists of a dictionary with up to three keys: `data`, `db` and `wal`. Only the `data`
+  key is mandatory and its value represent the primary OSD data device. A separate RocksDB or WAL location can be
+  specified by setting the `db` or `wal` keys respectively.
+* `updateDomain` can either be set to `OSD` to perform rolling updates one OSD at a time. Or it can be set to `Host`
+  to update all pods on a host at the same time before proceeding to the next host.
+* The `podTemplate` should contain a complete pod definition. It is instantiated for each OSD by replacing some values
+  like `metadata.name` or `metadata.namespace` and adding other values (`labels`, `annotations`, `ownerReferences` and
+  `nodeAffinity` rules). See `ansible/roles/CephOSD/templates/pod-definition-additions.yaml.j2` for a complete list
+  of changes.
+  
+The whole custom resource is checked against an OpenAPIv3 schema provided in the included custom resource definition.
+This includes the `podTemplate`. Changes to the `Pod` specification by the Kubernetes team might require updates
+to the schema in the future.
+
+## Pod states and rolling update state machine
+
+Each pod has an annotation named `ceph.elemental.net/pod-state` tracking its state. These states are:
+
+* `up-to-date`: The pod looks fine and its configuration is up-to-date.
+* `out-of-date` The pod looks fine but its configuration is out-of-date and it will be updated by recreating it.
+* `ready`: The pod is up-to-date, it is waiting to get ready and its actual state is ready. This state is only
+  used internally and is not reflected in the annotation.
+* `unready`: The pod is up-to-date and it is waiting to get ready but it is not ready (yet). Internal state only.
+* `invalid`: The pod is missing some mandatory annotations, i.e. it is a duplicate or has an invalid name. 
+  It will be deleted. Internal state only.
+
+The state of a pod is determined by this logic:
+
+* If the pod is terminating:
+    * The pod is ignored altogether.
+* Else if the mandatory pod annotations are present:
+    * If the pod is a duplicate of another pod:
+        * The pod is invalid.
+    * Else if the pod name doesn't conform to our scheme:
+        * The pod is invalid.
+    * Else if the pod's template hash equals the current template hash from the CR:
+        * If the pod is waiting to get ready and its actual state is ready:
+            * The pod is ready.
+        * Else if the pod is waiting to get ready and it's not ready:
+            * The pod is unready.
+        * Else:
+            * The pod is up-to-date.
+    * Else:
+        * The pod is out-of-date.
+* Else:
+    * The pod is invalid.
+
+When the `podTemplate` is changed all pods are marked as `out-of-date`. Depending on the `updateDomain` one pod 
+or all pods of one host from the `out-of-date` list are recreated with the new configuration. After that the
+operator waits for the new pod or for the group of new pods to become ready. When all new pods have become ready the
+operator proceeds to the next `out-of-date` pod or group of pods. If not all pods become ready the update process
+halts and it requires manual intervention by an administrator. Options for the administrator include:
+
+* If the `podTemplate` is faulty, the administrator can fix the `podTemplate` and the update process will 
+  automatically restart from the beginning.
+* If there are other reasons preventing a pod from becoming ready the administrator can fix them. After that the pod 
+  should become ready after some time and the update process continues automatically.
+* The administrator can delete the `ceph.elemental.net/pod-state` annotation or set it to `up-to-date` overriding the
+  operator. The update process will continue without waiting for this pod to become ready. 
+  
+## Container Images
+
+Container images for the operator are available on [Docker Hub](https://hub.docker.com/r/elementalnet/ceph-osd-operator/).
+Images are build automatically from the Git repository. They are tagged with the Git short version hash from which 
+they were created. The images depend on a [elementalnet/ansible-operator](https://hub.docker.com/r/elementalnet/ansible-operator/) 
+base image which is currently maintained manually.
+
+## Future Ideas
+
+* Setting `noout` for OSDs during update
+* Watch OSD status directly via Ceph during update

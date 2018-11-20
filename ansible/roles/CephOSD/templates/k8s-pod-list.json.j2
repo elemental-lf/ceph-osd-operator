@@ -4,38 +4,6 @@
 {% set outofdate = {} %}
 {% set invalid = [] %}
 
-{#
-
-Pods are classified into several groups:
-
-* Up-to-date: The pod looks fine and its configuration is up-to-date.
-* Out-of-date The pod looks fine but its configuration is out-of-date and it will be upgraded by recreating it.
-* Ready: The pod is up-to-date and it's waiting to get ready and its actual state is ready.
-* Unready: The pod is up-to-date and it's waiting to get ready but it's not ready (yet).
-* Invalid: The pod is missing some mandatory annotations, is a duplicate or has an invalid name. It will be deleted.
-
-The group the pod belongs to is determined by this logic:
-
-* If the pod is terminating:
-    * The pod is ignored altogether.
-* Else if the mandatory pod annotations are present:
-    * If the pod is a duplicate of another pod:
-        * The pod is invalid.
-    * Else if the pod name doesn't conform to our scheme:
-        * The pod is invalid.
-    * Else if the pod's template hash equals the current template hash from the CR:
-        * If the pod is waiting to get ready and its actual state is ready:
-            * The pod is ready.
-        * Else if the pod is waiting to get ready and it's not ready:
-            * The pod is unready.
-        * Else:
-            * The pod is up-to-date.
-    * Else:
-        * The pod is out-of-date.
-* Else:
-    * The pod is invalid.
-#}
-
 {% for item in k8s_gvks %}
 {%   if 'deletionTimestamp' in item.metadata %}
 {%     continue %}
