@@ -1,4 +1,4 @@
-FROM elementalnet/ansible-operator
+FROM elementalnet/ansible-operator:af4fa0b
 USER root
 RUN echo 'jinja2_extensions = jinja2.ext.do,jinja2.ext.loopcontrols' >> /etc/ansible/ansible.cfg && \
 	HOME=/tmp pip install --upgrade jinja2 && \
