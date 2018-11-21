@@ -54,9 +54,8 @@ spec:
 * `updateDomain` can either be set to `OSD` to perform rolling updates one OSD at a time. Or it can be set to `Host`
   to update all pods on a host at the same time before proceeding to the next host.
 * The `podTemplate` should contain a complete pod definition. It is instantiated for each OSD by replacing some values
-  like `metadata.name` or `metadata.namespace` and adding other values (`labels`, `annotations`, `ownerReferences` and
-  `nodeAffinity` rules). See `ansible/roles/CephOSD/templates/pod-definition-additions.yaml.j2` for a complete list
-  of changes.
+  like `metadata.name` or `metadata.namespace` and adding other values (`labels`, `annotations`, and `nodeAffinity` 
+  rules). See `ansible/roles/CephOSD/templates/pod-definition-additions.yaml.j2` for a complete list of changes.
   
 The whole custom resource is checked against an OpenAPIv3 schema provided in the included custom resource definition.
 This includes the `podTemplate`. Changes to the `Pod` specification by the Kubernetes team might require updates

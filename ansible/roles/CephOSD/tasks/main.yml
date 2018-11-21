@@ -8,7 +8,6 @@
     ceph_osd_cr_name: '{{ meta.name }}'
     ceph_osd_cr_api_version: '{{ _ceph_elemental_net_cephosd.apiVersion }}'
     ceph_osd_cr_kind: '{{ _ceph_elemental_net_cephosd.kind }}'
-    ceph_osd_cr_uid: '{{ _ceph_elemental_net_cephosd.metadata.uid }}'
     ceph_osd_cr_api_group: "{{ _ceph_elemental_net_cephosd.apiVersion.split('/')[0] }}"
     ceph_osd_storage: "{{ _ceph_elemental_net_cephosd.spec.storage }}"
     ceph_osd_pod_template: "{{ _ceph_elemental_net_cephosd.spec.podTemplate }}"
