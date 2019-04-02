@@ -1,25 +1,15 @@
-#!/usr/bin/env python3
-import sys
-from prance import ResolvingParser
-from ruamel.yaml import YAML
+#!/bin/bash
 
-def remove_k8s_extentions(schema):
-  if isinstance(schema, dict):
-      for k in list(schema.keys()):
-          if k.startswith('x-kubernetes-'):
-              del schema[k]
-          else:
-              remove_k8s_extentions(schema[k])
+set -euo pipefail
 
-parser = ResolvingParser('ceph_v1alpha1_cephosd_schema.yaml', backend = 'openapi-spec-validator')
-schema = parser.specification['components']['schemas']['CephOSD']
-remove_k8s_extentions(schema)
+cd "$(dirname "${BASH_SOURCE[0]}")"
+        
+if [[ ! -d ./k8s-crd-resolver ]]; then 
+    python3 -m venv ./k8s-crd-resolver
+    . ./k8s-crd-resolver/bin/activate
+    pip install git+http://github.com/elemental-lf/k8s-crd-resolver
+else
+    . ./k8s-crd-resolver/bin/activate
+fi
 
-yaml=YAML(typ='safe') 
-with open('ceph_v1alpha1_cephosd_crd.yaml.tmpl', 'r') as f:
-  base = yaml.load(f)
-
-base['spec']['validation']['openAPIV3Schema'] = schema
-
-with open('ceph_v1alpha1_cephosd_crd.yaml', 'w') as f:
-  yaml.dump(base, f)
+k8s-crd-resolver ceph_v1alpha1_cephosd_crd.yaml.tmpl ceph_v1alpha1_cephosd_crd.yaml
