@@ -9,7 +9,7 @@
     deploy_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/deploy"
   tasks:
   - name: Get kubeconfig
-    command: kind get kubeconfig --name '{{ kind_cluster_name }}'
+    command: "{{ kind }} get kubeconfig --name '{{ kind_cluster_name }}'"
     register: kind_get_kubeconfig
 
   - name: Create the kubeconfig file
