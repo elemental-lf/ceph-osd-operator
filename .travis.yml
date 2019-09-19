@@ -1,6 +1,30 @@
+dist: xenial
 services: docker
+
 language: python
+python:
+  - '3.6'
+
+env:
+  global:
+    secure: 'U1T3uLC4VkcOw45QTGgU/ohM8EmABVSKxnhSLvm+T/DD/WMvMry96g30+ZUGrvfwRhCkvX/hTbfkYCGKh/N/zgUlotISpu2f5hghQcqgJvI5IZ3WhSj7vJSTEiQYhwrdYyOIjusWc84pYpFCBdwv9VdiE5v7K1LjoNvUgGYRQBeYLNu0f1yZWaytzH8ousEjVqCYeUfrpbGdG27q5PReUx2CGabMV7DZ0Mj/G6fEFuZoCoAbdaFmovsts1jMn6UxNDYkS2lTd6JyeDePVE8/RzI++x4Y7mM4VmTlC0mp0LIHWbkKQGG0Jc34Wm05MGIfPIj0PA/GS+yYFnMEJXPAQxKIDNl/wgHz8EQPSn3btbbxa3MILFGdw75a/HeMKp/gR5V2fzkrJwEDc8gh9ZZsCooYEmXbTKV/1XT25WGIydvG8FihCWJ57nmhlXnGItLFaXvLoR/xBawmB/8Mr11SuCJCggzfnJ9MFLZ+CZTpcL7HnEnkEEfZ61Z6w0EstsbuWblolR+hu+mEwQDa0+7n7WcRSjW3yWzwTE0saYYh4656j+Irma/urxfjmPAddRAijI4dcv2ewI1hZh4C1qsDxV0CTVZ1G9tSpFyO34VJ+QSAlKqcVJYDIbb4zFvx2z4lCEHq7aPbKJ7ISzjXX0gEoMcXFM1KQiK2inXz2U1W7dg='
+    secure: 'tWGFGsfWbUV0zZJrXcj4ncROHaI0k2rVNJVM1P/pNV0Lyp5w5NwsDZljK0xsP9oNA1oq6i5k/D2DQiqfNSNzCG9DlOuHKLJ68qdWG7V4IKbYPNzeoJVSefbqok1ITzIcSxNw2GFXpCTF2ZlVH6+2o3/B9AicbYpc8TK0yDpij3YptTG1dn7Js8wvjOlWyfZ1T5jOJzPPTjI8NMWX8+axAlTK4wr/eg4fmDlR5y76edD9tvCTXuLFcMbvbuw0s+G58i8GKGiwe+tC1ab9xUwIrYmUB9X/v8/ZhGIXDShtltpNYZ34870dSec1HSFVLKH7zU+4RRy8dI0wouszpqr36Jo2wfv8RHeOBPWoExNEI6tG4JwFtwwkMZUSqa+iStMi5EO67kvHamVNc5jfBuf4l2/Cj81ouAb+docPgK3Qjsj9aVjGjSsj3F9ExautGZHv7zCKixrAm11/uSkvFJ5quu1jDnWaIWOEht7BBcWTFu/NMSil02g4Pi3YE0GMqVd1PPnry2646XHZs9FEmjPpgctcmGqISiivrNu8RLDWqAtkz2k87BmKxj/5a9MkFMlqf81TJlpzCMBxq9F/zdiqsqMnSMF11jKEBb8ffJYvFJPgFbPkseSI7a2lOworgkdiphL0GF16BZEm2b4lObIZlinpm4w0Av4oqRyIziGCCAY='
+
+before_install:
+  - curl --retry 5 -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - travis_retry sudo apt-get update
+  - travis_retry sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+  - docker version
+
 install:
-  - pip install -q docker molecule openshift jmespath
+  - travis_retry pip install -q docker molecule openshift jmespath
+
 script:
   - molecule test -s test-local
+
+after_success:
+  - travis_retry docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+  - export IMAGE_TAG="$(./build-script-collection/get-version-git | tr '+' '_')"
+  - docker build -f build/Dockerfile -t "elementalnet/ceph-osd-operator:$IMAGE_TAG" .
+  - travis_retry docker push "elementalnet/ceph-osd-operator:$IMAGE_TAG"
