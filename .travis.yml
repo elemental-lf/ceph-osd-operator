@@ -1,6 +1,6 @@
 services: docker
 language: python
 install:
-  - pip install docker molecule openshift jmespath
+  - pip install -q docker molecule openshift jmespath
 script:
   - molecule test -s test-local
