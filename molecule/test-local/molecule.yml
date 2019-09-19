@@ -1,0 +1,36 @@
+---
+driver:
+  name: delegated
+lint:
+  name: yamllint
+  enabled: False
+platforms:
+- name: localhost
+provisioner:
+  name: ansible
+  log: True
+  lint:
+    name: ansible-lint
+    enabled: False
+  inventory:
+    group_vars:
+      all:
+        kind_version: 0.5.1
+        kubectl_version: 1.15.3
+        #
+        namespace: ${TEST_NAMESPACE:-default}
+        kind_cluster_name: "{{ lookup('env', 'MOLECULE_SCENARIO_NAME') }}"
+        ephemeral_directory: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+        kind: "{{ ephemeral_directory }}/kind"
+        kubectl: "{{ ephemeral_directory }}/kubectl"
+  env:
+    # For Ansible k8s module
+    K8S_AUTH_KUBECONFIG: ${MOLECULE_EPHEMERAL_DIRECTORY}/kubeconfig
+    # For kubectl
+    KUBECONFIG: ${MOLECULE_EPHEMERAL_DIRECTORY}/kubeconfig
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/roles
+  playbooks:
+    create: ../default/create.yml
+    destroy: ../default/destroy.yml
+scenario:
+  name: test-local

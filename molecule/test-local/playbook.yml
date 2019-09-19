@@ -1,0 +1,121 @@
+---
+- name: Build and distribute operator image
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  vars:
+    image_name: elementalnet/ceph-osd-operator:testing
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+  tasks:
+  # Using command so we don't need to install any dependencies
+  - name: Get existing image hash
+    command: docker images -q {{ image_name }}
+    register: prev_hash
+    changed_when: false
+
+  - name: Build operator image
+    command: docker build -f '{{ project_dir }}/build/Dockerfile' -t '{{ image_name }}' '{{ project_dir }}'
+    register: build_cmd
+    changed_when: not prev_hash.stdout or (prev_hash.stdout and prev_hash.stdout not in ''.join(build_cmd.stdout_lines[-2:]))
+
+  - name: Load operator image into nodes
+    command: kind load docker-image --name '{{ kind_cluster_name }}' '{{ image_name }}'
+    # Unfortunately there is no easy way to see if the image has already been loaded
+    changed_when: false
+
+- name: Converge
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  vars:
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
+    deploy_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/deploy"
+    pull_policy: Never
+    REPLACE_IMAGE: elementalnet/ceph-osd-operator:testing
+    custom_resource: "{{ lookup('file', '/'.join([deploy_dir, 'example/ceph_v1alpha1_cephosd_cr.yaml'])) | from_yaml }}"
+  tasks:
+  - block:
+    - name: Delete the Operator Deployment
+      k8s:
+        state: absent
+        namespace: '{{ namespace }}'
+        definition: "{{ lookup('template', '/'.join([deploy_dir, 'operator.yaml'])) }}"
+      register: delete_deployment
+      when: hostvars['localhost'].build_cmd.changed
+
+    - name: Wait 30s for Operator Deployment to terminate
+      k8s_facts:
+        api_version: '{{ definition.apiVersion }}'
+        kind: '{{ definition.kind }}'
+        namespace: '{{ namespace }}'
+        name: '{{ definition.metadata.name }}'
+      vars:
+        definition: "{{ lookup('template', '/'.join([deploy_dir, 'operator.yaml'])) | from_yaml }}"
+      register: deployment
+      until: not deployment.resources
+      delay: 3
+      retries: 10
+      when: delete_deployment.changed
+
+    - name: Create the Operator Deployment
+      k8s:
+        namespace: '{{ namespace }}'
+        definition: "{{ lookup('template', '/'.join([deploy_dir, 'operator.yaml'])) }}"
+
+    - name: Create the ceph.elemental.net/v1alpha1.CephOSD resource
+      k8s:
+        state: present
+        namespace: '{{ namespace }}'
+        definition: '{{ custom_resource }}'
+
+    - name: Wait 60s for reconciliation to run
+      k8s_facts:
+        api_version: '{{ custom_resource.apiVersion }}'
+        kind: '{{ custom_resource.kind }}'
+        namespace: '{{ namespace }}'
+        name: '{{ custom_resource.metadata.name }}'
+      register: cr
+      until:
+      - "'Successful' in (cr | json_query('resources[].status.conditions[].reason'))"
+      delay: 6
+      retries: 10
+    rescue:
+    - name: debug cr
+      ignore_errors: yes
+      failed_when: false
+      debug:
+        var: debug_cr
+      vars:
+        debug_cr: '{{ lookup("k8s",
+          kind=custom_resource.kind,
+          api_version=custom_resource.apiVersion,
+          namespace=namespace,
+          resource_name=custom_resource.metadata.name
+        )}}'
+
+    - name: debug pods lookup
+      ignore_errors: yes
+      failed_when: false
+      debug:
+        var: pods
+      vars:
+        pods: '{{ lookup("k8s",
+          kind="Pod",
+          api_version="v1",
+          namespace=namespace
+        )}}'
+
+    - name: get operator logs
+      ignore_errors: yes
+      failed_when: false
+      command: "{{ kubectl }} logs deployment/{{ definition.metadata.name }} -n {{ namespace }}"
+      vars:
+        definition: "{{ lookup('template', '/'.join([deploy_dir, 'operator.yaml'])) | from_yaml }}"
+      register: log
+
+    - debug: var=log.stdout_lines
+
+    - fail:
+        msg: "Failed on action: converge"
+
+- import_playbook: '{{ playbook_dir }}/../default/asserts.yml'

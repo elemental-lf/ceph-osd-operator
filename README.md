@@ -1,12 +1,38 @@
 # Ceph OSD Operator
 
-This repository includes a Ceph OSD operator based on the [Ansible based variant](https://github.com/water-hole/ansible-operator)
-of the [Red Hat (formerly CoreOS) Operator SDK](https://github.com/operator-framework/operator-sdk).
+This repository includes a Ceph OSD operator based on the Ansible variant] of the
+[Red Hat (formerly CoreOS) Operator SDK](https://github.com/operator-framework/operator-sdk).
 
 In contrast to [Rook](https://github.com/rook/rook) it is not a one-stop solution for deploying Ceph but only deals
 with the orchestration of the Ceph OSDs. To be a complete solution it needs further support. Currently 
 `ceph-osd-operator` is used in [ceph-with-helm](https://github.com/elemental-lf/ceph-with-helm) to form a complete
 container based installation of Ceph.
+
+## Version Information
+
+This is the second major version based on version 0.10.0 of the Operator SDK. It predecessor work like a charm for
+
+* Functionality is the same as in previous versions.
+
+* A test suite based on the framework provided by the SDK has been added. It uses
+  [Molecule](https://molecule.readthedocs.io/en/stable/). Two test scenarios are provided: `default` and `test-local`.
+  Both create a three node Kubernetes cluster based on [Kind](https://github.com/kubernetes-sigs/kind). `test-local`
+  is the more useful of the two scenarios. Requirements: Docker, Ansible, Python packages `molecule`, `openshift`,
+  `jmespath`. (NB: Kind does not work when `/var/lib/docker` is on a `btrfs` filesystem. The main problem seems
+  to be with `kubelet`.)
+
+* The naming of the CRD was erroneous as it used the singular instead of the plural, this has been corrected. The CRD
+  and all custom resources need to be recreated which will disrupt the Ceph cluster. **Action required.**
+
+* Any Helm charts including operator will also need updating as the manifests have changed.
+  See `deploy/operator.yaml` and `deploy/role.yaml`. **Action required.**
+
+* The problem where logging artifacts would accumulate in the operator pod has been solved through the Operator SDK
+  update. Only the log files of the last twenty runs are kept now.
+
+* The helper scripts have been updated to reflect the new pod structure of the Operator SDK. **Action required.**
+
+## Details
 
 This operator only supports Bluestore based deployments with `ceph-volume`. Separate devices for the RocksDB and 
 the WAL can be specified. Support for passing the WAL is untested as `ceph-with-helm` currently doesn't support it.
@@ -21,7 +47,7 @@ only watches the `Ready` condition of newly created pods. But if the readiness c
 this should go a long way in making sure that the OSD is okay. If an updated OSD pod doesn't become ready the update
 process is halted and no further OSDs are updated without manual intervention.
 
-## Structure of the CephOSD custom resource
+### Structure of the CephOSD custom resource
 
 ```yaml
 apiVersion: ceph.elemental.net/v1alpha1
@@ -61,7 +87,7 @@ The whole custom resource is checked against an OpenAPIv3 schema provided in the
 This includes the `podTemplate`. Changes to the `Pod` specification by the Kubernetes team might require updates
 to the schema in the future.
 
-## Pod states and rolling update state machine
+### Pod states and rolling update state machine
 
 Each pod has an annotation named `ceph.elemental.net/pod-state` tracking its state. These states are:
 
@@ -106,13 +132,38 @@ halts and it requires manual intervention by an administrator. Options for the a
   should become ready after some time and the update process continues automatically.
 * The administrator can delete the `ceph.elemental.net/pod-state` annotation or set it to `up-to-date` overriding the
   operator. The update process will continue without waiting for this pod to become ready. 
+ 
+### Recommendations for the pod template
+
+The `restartPolicy` in the pod template should be `Always`. In addition the following tolerations should be included
+to prevent eviction under these conditions:
+
+```yaml
+      tolerations:
+        - key: node.kubernetes.io/unschedulable
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+```
+
+It is also a good idea to set a `priorityClass` in the template:
+  
+```yaml
+apiVersion: scheduling.k8s.io/v1beta1
+kind: PriorityClass
+metadata:
+  name: ceph-osd
+value: 1000000000
+
+```
   
 ## Container Images
 
 Container images for the operator are available on [Docker Hub](https://hub.docker.com/r/elementalnet/ceph-osd-operator/).
-Images are build automatically from the Git repository. They are tagged with the Git short version hash from which 
-they were created. The images depend on a [elementalnet/ansible-operator](https://hub.docker.com/r/elementalnet/ansible-operator/) 
-base image which is currently maintained manually.
+Images are build automatically from the Git repository by Travis CI.
 
 ## Future Ideas
 

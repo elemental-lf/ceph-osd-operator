@@ -1,0 +1,35 @@
+---
+- name: Prepare
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  vars:
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') }}"
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
+    deploy_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/deploy"
+  tasks:
+  - name: Get kubeconfig
+    command: kind get kubeconfig --name '{{ kind_cluster_name }}'
+    register: kind_get_kubeconfig
+
+  - name: Create the kubeconfig file
+    copy:
+      content: '{{ kind_get_kubeconfig.stdout }}'
+      dest: '{{ kubeconfig }}'
+
+  - name: Create Custom Resource Definition
+    k8s:
+      definition: "{{ lookup('file', '/'.join([deploy_dir, 'crds/ceph_v1alpha1_cephosd_crd.yaml'])) }}"
+
+  - name: Ensure specified namespace is present
+    k8s:
+      api_version: v1
+      kind: Namespace
+      name: '{{ namespace }}'
+
+  - name: Create supplementary resources
+    k8s:
+      definition: "{{ lookup('template', '/'.join([deploy_dir, item])) }}"
+      namespace: '{{ namespace }}'
+    with_items:
+      - example/priority_class.yaml

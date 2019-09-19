@@ -1,2 +1,2 @@
 #!/bin/bash
-exec kubectl logs -f $(kubectl get pod -l name=ceph-osd-operator -o 'jsonpath={.items[0].metadata.name}')
+exec kubectl logs -f -c operator $(kubectl get pod -l name=ceph-osd-operator -o 'jsonpath={.items[0].metadata.name}')

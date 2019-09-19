@@ -2,4 +2,5 @@
 - version: v1alpha1
   group: ceph.elemental.net
   kind: CephOSD
-  playbook: /opt/ansible/playbook.yaml
+  role: /opt/ansible/roles/cephosd
+  reconcilePeriod: "30s"

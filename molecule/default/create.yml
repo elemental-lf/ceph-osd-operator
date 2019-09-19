@@ -1,0 +1,43 @@
+---
+- name: Create
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  tasks:
+    - name: Collect binary status
+      stat:
+        path: '{{ item }}'
+        get_checksum: no
+      register: binary_status
+      loop:
+        - '{{ kind }}'
+        - '{{ kubectl }}'
+
+    - name: Determine kind version
+      command: '{{ kind }} version'
+      register: installed_kind_version
+      when: binary_status.results[0].stat.exists
+
+    - name: Determine kubectl version
+      command: '{{ kubectl }} version --short=true --client=true -o json'
+      register: installed_kubectl_version
+      when: binary_status.results[1].stat.exists
+
+    - name: Download kind
+      get_url:
+        url: "https://github.com/kubernetes-sigs/kind/releases/download/v{{ kind_version }}/kind-linux-amd64"
+        dest: "{{ kind }}"
+        mode: 0700
+        force: True
+      when: not binary_status.results[0].stat.exists or installed_kind_version.stdout_lines[0] != 'v' + kind_version
+
+    - name: Download kubectl
+      get_url:
+        url: "https://storage.googleapis.com/kubernetes-release/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: "{{ kubectl }}"
+        mode: 0700
+        force: True
+      when: not binary_status.results[1].stat.exists or (installed_kubectl_version.stdout | from_json)['clientVersion']['gitVersion'] != 'v' + kubectl_version
+
+    - name: Create the cluster
+      command: "{{ kind }} create cluster --config cluster-config.yml --name '{{ kind_cluster_name }}'"

@@ -5,8 +5,8 @@ metadata:
 spec:
   storage:
     - hosts:
-      - worker041.example.com
-      - worker042.example.com
+      - kind-worker
+      - kind-worker2
       osds:
       - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-1'
         db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part1'
@@ -16,6 +16,9 @@ spec:
   podTemplate:
     apiVersion: v1
     kind: Pod
+    metadata:
+      labels:
+        role: osd
     spec:
       containers:
       - image: busybox
@@ -37,3 +40,11 @@ spec:
           periodSeconds: 5
       restartPolicy: Always
       priorityClassName: ceph-osd
+      tolerations:
+        - key: node.kubernetes.io/unschedulable
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+        - key: node.kubernetes.io/unreachable
+          operator: Exists

@@ -1,0 +1,9 @@
+---
+- name: Destroy
+  hosts: localhost
+  gather_facts: no
+  connection: local
+  tasks:
+    - name: Delete the cluster
+      command: "{{ kind }} delete cluster --name '{{ kind_cluster_name }}'"
+      ignore_errors: True

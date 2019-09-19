@@ -1,0 +1,22 @@
+---
+
+- name: Verify
+  hosts: localhost
+  connection: local
+  vars:
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
+  tasks:
+    - name: Get all OSD pods in {{ namespace }}
+      k8s_facts:
+        api_version: v1
+        kind: Pod
+        namespace: '{{ namespace }}'
+        label_selectors:
+          - "role = osd"
+      register: osd_pods
+
+    - name: Output pods
+      debug: var=osd_pods
+
+    - assert:
+        that: (osd_pods.resources | length) == 4
