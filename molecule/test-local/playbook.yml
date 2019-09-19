@@ -19,7 +19,7 @@
     changed_when: not prev_hash.stdout or (prev_hash.stdout and prev_hash.stdout not in ''.join(build_cmd.stdout_lines[-2:]))
 
   - name: Load operator image into nodes
-    command: kind load docker-image --name '{{ kind_cluster_name }}' '{{ image_name }}'
+    command: "{{ kind }} load docker-image --name '{{ kind_cluster_name }}' '{{ image_name }}'"
     # Unfortunately there is no easy way to see if the image has already been loaded
     changed_when: false
 
