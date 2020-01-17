@@ -1,6 +1,6 @@
 # Ceph OSD Operator
 
-This repository includes a Ceph OSD operator based on the Ansible variant] of the
+This repository includes a Ceph OSD operator based on the Ansible variant of the
 [Red Hat (formerly CoreOS) Operator SDK](https://github.com/operator-framework/operator-sdk).
 
 In contrast to [Rook](https://github.com/rook/rook) it is not a one-stop solution for deploying Ceph but only deals
@@ -10,7 +10,8 @@ container based installation of Ceph.
 
 ## Version Information
 
-This is the second major version based on version 0.10.0 of the Operator SDK. It predecessor work like a charm for
+This is the second major version based on version 0.10.0 of the Operator SDK. Its predecessor worked like 
+a charm for over six months.
 
 * Functionality is the same as in previous versions.
 
