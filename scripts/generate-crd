@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+        
+if [[ ! -d ./k8s-crd-resolver ]]; then 
+    python3 -m venv ./k8s-crd-resolver
+    . ./k8s-crd-resolver/bin/activate
+    pip install git+http://github.com/elemental-lf/k8s-crd-resolver
+else
+    . ./k8s-crd-resolver/bin/activate
+fi
+
+k8s-crd-resolver ../config/crd/bases/ceph.elemental.net_cephosds.yaml.tmpl ../config/crd/bases/ceph.elemental.net_cephosds.yaml

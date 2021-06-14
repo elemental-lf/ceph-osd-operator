@@ -1,0 +1,69 @@
+nameReference:
+- kind: PriorityClass
+  group: scheduling.k8s.io
+  version: v1
+  fieldSpecs:
+  - path: spec/podTemplate/spec/priorityClassName
+    kind: CephOSD
+    group: ceph.elemental.net
+
+- kind: ConfigMap
+  version: v1
+  fieldSpecs:
+  - path: spec/podTemplate/spec/volumes/configMap/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/containers/env/valueFrom/configMapKeyRef/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/initContainers/env/valueFrom/configMapKeyRef/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/containers/envFrom/configMapRef/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/initContainers/envFrom/configMapRef/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/volumes/projected/sources/configMap/name
+    kind: CephOSD
+    group: ceph.elemental.net
+
+- kind: Secret
+  version: v1
+  fieldSpecs:
+  - path: spec/podTemplate/spec/volumes/secret/secretName
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/containers/env/valueFrom/secretKeyRef/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/initContainers/env/valueFrom/secretKeyRef/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/containers/envFrom/secretRef/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/initContainers/envFrom/secretRef/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/imagePullSecrets/name
+    kind: CephOSD
+    group: ceph.elemental.net
+  - path: spec/podTemplate/spec/volumes/projected/sources/secret/name
+    kind: CephOSD
+    group: ceph.elemental.net
+
+- kind: ServiceAccount
+  version: v1
+  fieldSpecs:
+  - path: spec/podTemplate/spec/serviceAccountName
+    kind: CephOSD
+    group: ceph.elemental.net
+
+- kind: PersistentVolumeClaim
+  version: v1
+  fieldSpecs:
+  - path: spec/podTemplate/spec/volumes/persistentVolumeClaim/claimName
+    kind: CephOSD
+    group: ceph.elemental.net

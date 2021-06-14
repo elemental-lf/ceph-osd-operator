@@ -1,0 +1,11 @@
+# Adds namespace to all resources.
+namespace: osdk-test
+
+namePrefix: osdk-
+
+configurations:
+- ../crd/ceph.elemental.net_cephosds_name_references.yaml
+
+resources:
+- priority_class.yaml
+- ceph_v1alpha1_cephosd.yaml

@@ -1,0 +1,26 @@
+---
+- name: Build samples manifests with kustomize
+  command: '{{ kustomize }} build --load-restrictor LoadRestrictionsNone .'
+  args:
+    chdir: '{{ config_dir }}/samples'
+  register: samples_resources
+  changed_when: false
+
+- name: Create resources from samples
+  k8s:
+    definition: '{{ item }}'
+    state: present
+    wait: yes
+  loop: '{{ samples_resources.stdout | from_yaml_all | list }}'
+
+- name: Get all OSD pods in {{ namespace }}
+  k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: '{{ namespace }}'
+    label_selectors:
+      - "role = osd"
+  register: osd_pods
+  retries: 20
+  delay: 2
+  until: (osd_pods.resources | length) == 4

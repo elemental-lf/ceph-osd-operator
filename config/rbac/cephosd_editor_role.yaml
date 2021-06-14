@@ -1,0 +1,24 @@
+# permissions for end users to edit cephosds.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cephosd-editor-role
+rules:
+- apiGroups:
+  - ceph.elemental.net
+  resources:
+  - cephosds
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ceph.elemental.net
+  resources:
+  - cephosds/status
+  verbs:
+  - get

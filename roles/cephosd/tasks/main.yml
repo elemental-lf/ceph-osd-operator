@@ -4,8 +4,8 @@
 
 - name: extract custom resource data
   set_fact:
-    ceph_osd_cr_namespace: '{{ meta.namespace }}'
-    ceph_osd_cr_name: '{{ meta.name }}'
+    ceph_osd_cr_namespace: '{{ ansible_operator_meta.namespace }}'
+    ceph_osd_cr_name: '{{ ansible_operator_meta.name }}'
     ceph_osd_cr_api_version: '{{ _ceph_elemental_net_cephosd.apiVersion }}'
     ceph_osd_cr_kind: '{{ _ceph_elemental_net_cephosd.kind }}'
     ceph_osd_cr_api_group: "{{ _ceph_elemental_net_cephosd.apiVersion.split('/')[0] }}"

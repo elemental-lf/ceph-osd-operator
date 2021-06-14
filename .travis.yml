@@ -21,10 +21,10 @@ install:
   - travis_retry pip install -q docker molecule openshift jmespath
 
 script:
-  - molecule test -s test-local
+  - molecule test -s kind
 
 after_success:
   - travis_retry docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   - export IMAGE_TAG="$(./build-script-collection/get-version-git | tr '+' '_')"
-  - docker build -f build/Dockerfile -t "elementalnet/ceph-osd-operator:$IMAGE_TAG" .
+  - docker build -t "elementalnet/ceph-osd-operator:$IMAGE_TAG" .
   - travis_retry docker push "elementalnet/ceph-osd-operator:$IMAGE_TAG"

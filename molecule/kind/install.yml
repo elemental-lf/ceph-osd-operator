@@ -1,0 +1,55 @@
+- name: Collect binary status
+  stat:
+    path: '{{ item }}'
+    get_checksum: no
+  register: binary_status
+  loop:
+    - '{{ kind }}'
+    - '{{ kustomize }}'
+
+- name: Determine kind version
+  command: '{{ kind }} version'
+  register: installed_kind_version
+  when: binary_status.results[0].stat.exists
+
+- name: Determine kustomize version
+  command: '{{ kustomize }} version --short'
+  register: installed_kustomize_version
+  when: binary_status.results[1].stat.exists
+
+#- name: Determine kubectl version
+#  command: '{{ kubectl }} version --short=true --client=true -o json'
+#  register: installed_kubectl_version
+#  when: binary_status.results[1].stat.exists
+
+- name: Install kind
+  get_url:
+    url: "https://github.com/kubernetes-sigs/kind/releases/download/v{{ kind_version }}/kind-linux-amd64"
+    dest: "{{ kind }}"
+    mode: 0700
+    force: True
+  when: not binary_status.results[0].stat.exists or not installed_kind_version.stdout_lines[0].startswith('kind v' + kind_version)
+
+- name: Install kustomize
+  block:
+    - name: Download kustomize
+      get_url:
+        url: "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv{{kustomize_version }}/kustomize_v{{ kustomize_version }}_linux_amd64.tar.gz"
+        dest: "{{ kustomize }}.tar.gz"
+        mode: 0600
+        force: True
+    - name: Unpack kustomize
+      unarchive:
+        remote_src: yes
+        src: "{{ kustomize }}.tar.gz"
+        dest: "{{ ephemeral_directory }}"
+        mode: 0700
+  when: not binary_status.results[1].stat.exists or not installed_kustomize_version.stdout_lines[0].startswith('{kustomize/v' + kustomize_version)
+
+#- name: Download kubectl
+#  get_url:
+#    url: "https://storage.googleapis.com/kubernetes-release/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+#    dest: "{{ kubectl }}"
+#    mode: 0700
+#    force: True
+#  when: not binary_status.results[2].stat.exists or (installed_kubectl_version.stdout | from_json)['clientVersion']['gitVersion'] != 'v' + kubectl_version
