@@ -3,7 +3,7 @@ services: docker
 
 language: python
 python:
-  - '3.6'
+  - '3.8'
 
 env:
   global:
@@ -14,11 +14,11 @@ before_install:
   - curl --retry 5 -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
   - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
   - travis_retry sudo apt-get update
-  - travis_retry sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+  - travis_retry sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce yamllint
   - docker version
 
 install:
-  - travis_retry pip install -q docker molecule openshift jmespath
+  - travis_retry pip install -q ansible docker molecule openshift jmespath
 
 script:
   - molecule test -s kind
