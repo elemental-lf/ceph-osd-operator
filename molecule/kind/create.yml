@@ -7,4 +7,4 @@
     - import_tasks: install.yml
 
     - name: Create test kind cluster
-      command: kind create cluster --name osdk-test --kubeconfig {{ kubeconfig }} --config cluster-config.yml
+      command: "{{ kind }} create cluster --name osdk-test --kubeconfig {{ kubeconfig }} --config cluster-config.yml"
