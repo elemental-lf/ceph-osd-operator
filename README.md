@@ -10,26 +10,20 @@ container based installation of Ceph.
 
 ## Version Information
 
-This is the second major version based on version 0.10.0 of the Operator SDK. Its predecessor worked like 
-a charm for over six months.
+This is the third major version based on version 1.8.0 of the Operator SDK. Its predecessor has been working
+like a charm for the last few years.
 
 * Functionality is the same as in previous versions.
 
-* A test suite based on the framework provided by the SDK has been added. It uses
-  [Molecule](https://molecule.readthedocs.io/en/stable/). Two test scenarios are provided: `default` and `test-local`.
-  Both create a three node Kubernetes cluster based on [Kind](https://github.com/kubernetes-sigs/kind). `test-local`
-  is the more useful of the two scenarios. Requirements: Docker, Ansible, Python packages `molecule`, `openshift`,
-  `jmespath`. (NB: Kind does not work when `/var/lib/docker` is on a `btrfs` filesystem. The main problem seems
-  to be with `kubelet`.)
+* A test suite based on the framework provided by the SDK is included. It uses
+  [Molecule](https://molecule.readthedocs.io/en/stable/). Two test scenarios are provided: `default` and `kind`.
+  The `kind` scenario creates a three node Kubernetes cluster based on [Kind](https://github.com/kubernetes-sigs/kind).
+  It requires Docker, Ansible, and the Python packages `molecule`, `openshift`, as well as `jmespath`.
 
-* The naming of the CRD was erroneous as it used the singular instead of the plural, this has been corrected. The CRD
-  and all custom resources need to be recreated which will disrupt the Ceph cluster. **Action required.**
+* In previous versions the naming of the CRD was erroneous as it used the singular instead of the plural, this has 
+  been corrected. The CRD and all custom resources need to be recreated which will disrupt the Ceph cluster.
 
-* Any Helm charts including operator will also need updating as the manifests have changed.
-  See `deploy/operator.yaml` and `deploy/role.yaml`. **Action required.**
-
-* The problem where logging artifacts would accumulate in the operator pod has been solved through the Operator SDK
-  update. Only the log files of the last twenty runs are kept now.
+* Example manifests and overlays can be found in `config`.
 
 * The helper scripts have been updated to reflect the new pod structure of the Operator SDK. **Action required.**
 
