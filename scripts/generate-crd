@@ -12,4 +12,12 @@ else
     . ./k8s-crd-resolver/bin/activate
 fi
 
-k8s-crd-resolver ../config/crd/bases/ceph.elemental.net_cephosds.yaml.tmpl ../config/crd/bases/ceph.elemental.net_cephosds.yaml
+k8s-crd-resolver --remove-descriptions \
+    --jsonpatch ../config/crd/bases/ceph.elemental.net_cephosds_v1beta1.yaml.patch \
+    ../config/crd/bases/ceph.elemental.net_cephosds_v1beta1.yaml.tmpl \
+    ../config/crd/bases/ceph.elemental.net_cephosds_v1beta1.yaml
+
+k8s-crd-resolver --remove-descriptions \
+    --jsonpatch ../config/crd/bases/ceph.elemental.net_cephosds_v1.yaml.patch \
+    ../config/crd/bases/ceph.elemental.net_cephosds_v1.yaml.tmpl \
+    ../config/crd/bases/ceph.elemental.net_cephosds_v1.yaml

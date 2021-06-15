@@ -1,5 +1,5 @@
 resources:
-- bases/ceph.elemental.net_cephosds.yaml
+- bases/ceph.elemental.net_cephosds_v1.yaml
 
 configurations:
 - ceph.elemental.net_cephosds_name_references.yaml
