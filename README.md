@@ -10,7 +10,7 @@ container based installation of Ceph.
 
 ## Version Information
 
-This is the third major version based on version 1.8.0 of the Operator SDK. Its predecessor has been working
+This is the third major version based on version 1.8.0 of the Operator SDK. Its predecessors have been working
 like a charm for the last few years.
 
 * Functionality is the same as in previous versions.
@@ -22,10 +22,13 @@ like a charm for the last few years.
 
 * In previous versions the naming of the CRD was erroneous as it used the singular instead of the plural, this has 
   been corrected. The CRD and all custom resources need to be recreated which will disrupt the Ceph cluster.
+  
+* There are two versions of the CRD provided: one using API version `v1beta1` and another one using `v1`. Please
+  see `config/crd/bases`.
 
 * Example manifests and overlays can be found in `config`.
 
-* The helper scripts have been updated to reflect the new pod structure of the Operator SDK. **Action required.**
+* The helper scripts have been removed in this version.
 
 ## Details
 
