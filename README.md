@@ -160,7 +160,8 @@ value: 1000000000
   
 ## Container Images
 
-Container images for the operator are available on [Docker Hub](https://hub.docker.com/r/elementalnet/ceph-osd-operator/).
+Container images for the operator are available in the
+[GitHub Container Registry](https://github.com/elemental-lf/ceph-osd-operator/pkgs/container/ceph-osd-operator).
 Images are build automatically from the Git repository by Travis CI.
 
 ## Future Ideas

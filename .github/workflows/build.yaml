@@ -1,0 +1,65 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+    branches:
+      - '**'
+
+jobs:
+  cancel:
+    name: "Cancel previous workflow runs"
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: styfle/cancel-workflow-action@0.8.0
+        with:
+          workflow_id: build.yaml
+          access_token: ${{ github.token }}
+
+  build_container_image:
+    name: "Build and publish container image"
+    runs-on: ubuntu-latest
+    needs:
+      - cancel
+    steps:
+      - name: Checkout repository files
+        uses: actions/checkout@v2
+        with:
+          # This is needed so we can determine the version properly from git history.
+          fetch-depth: 0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CONTAINER_REGISTRY_PAT }}
+
+      - name: Determine git version information
+        id: git-version
+        uses: elemental-lf/git-version-action@dcbd94cbd269ce0b9fb877e96c1a1d14add7984a
+
+      - name: Build and push container image (triggered by branch push)
+        uses: docker/build-push-action@v2
+        if: "${{ steps.git-version.outputs.git-branch != '' }}"
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ceph-osd-operator:${{ steps.git-version.outputs.git-branch }}
+
+      - name: Build and push container image (release, triggered by tag push)
+        uses: docker/build-push-action@v2
+        if: "${{ steps.git-version.outputs.git-tag != '' && steps.git-version.outputs.release == 'true' }}"
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ceph-osd-operator:latest
+            ghcr.io/${{ github.repository_owner }}/ceph-osd-operator:${{ steps.git-version.outputs.image-tag }}
