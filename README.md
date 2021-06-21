@@ -150,7 +150,7 @@ to prevent eviction under these conditions:
 It is also a good idea to set a `priorityClass` in the template:
   
 ```yaml
-apiVersion: scheduling.k8s.io/v1beta1
+apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
   name: ceph-osd
