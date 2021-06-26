@@ -17,11 +17,6 @@
   register: installed_kustomize_version
   when: binary_status.results[1].stat.exists
 
-#- name: Determine kubectl version
-#  command: '{{ kubectl }} version --short=true --client=true -o json'
-#  register: installed_kubectl_version
-#  when: binary_status.results[1].stat.exists
-
 - name: Install kind
   get_url:
     url: "https://github.com/kubernetes-sigs/kind/releases/download/v{{ kind_version }}/kind-linux-amd64"
@@ -45,11 +40,3 @@
         dest: "{{ ephemeral_directory }}"
         mode: 0700
   when: not binary_status.results[1].stat.exists or not installed_kustomize_version.stdout_lines[0].startswith('{kustomize/v' + kustomize_version)
-
-#- name: Download kubectl
-#  get_url:
-#    url: "https://storage.googleapis.com/kubernetes-release/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
-#    dest: "{{ kubectl }}"
-#    mode: 0700
-#    force: True
-#  when: not binary_status.results[2].stat.exists or (installed_kubectl_version.stdout | from_json)['clientVersion']['gitVersion'] != 'v' + kubectl_version

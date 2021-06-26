@@ -6,5 +6,46 @@
   tasks:
     - import_tasks: install.yml
 
+    - name: Check if container image registry exists
+      command: docker inspect -f {% raw %}'{{.State.Running}}'{% endraw %} '{{ registry_name }}'
+      ignore_errors: yes
+      register: registry_check
+
+    - name: Create container image registry
+      command: docker run -d --restart=always -p '{{ registry_port }}:5000' --name '{{ registry_name }}' registry:2
+      when: registry_check.rc != 0 or registry_check.stdout_lines[0] == 'false'
+
     - name: Create test kind cluster
-      command: "{{ kind }} create cluster --name osdk-test --kubeconfig {{ kubeconfig }} --config cluster-config.yml"
+      command:
+        cmd: "{{ kind }} create cluster --name '{{ kind_cluster_name }}' --kubeconfig '{{ kubeconfig }}' --config -"
+        stdin: |
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+            - role: control-plane
+            - role: worker
+            - role: worker
+          containerdConfigPatches:
+            - |-
+                [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:{{ registry_port }}"]
+                  endpoint = ["http://{{ registry_name }}:5000"]
+
+    - name: Export kubeconfig as a context
+      command: "{{ kind }} export kubeconfig --name '{{ kind_cluster_name }}' --kubeconfig '{{ user_kubeconfig }}'"
+
+    - name: Connect registry to cluster nodes
+      command: docker network connect kind '{{ registry_name }}'
+
+    - name: Install local-registry-hosting ConfigMap
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: local-registry-hosting
+            namespace: kube-public
+          data:
+            localRegistryHosting.v1: |
+              host: "localhost:{{ registry_port }}"
+              help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
