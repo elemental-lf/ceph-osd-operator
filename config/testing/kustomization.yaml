@@ -4,7 +4,7 @@ namespace: osdk-test
 namePrefix: osdk-
 
 patchesStrategicMerge:
-- debug_logs_patch.yaml
+# - debug_logs_patch.yaml
 - ../default/manager_auth_proxy_patch.yaml
 
 resources:
@@ -13,7 +13,7 @@ resources:
 - ../manager
 images:
 - name: controller
-  newName: testing-operator
+  newName: localhost:5000/testing-operator
 patches:
 - path: pull_policy/Always.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
