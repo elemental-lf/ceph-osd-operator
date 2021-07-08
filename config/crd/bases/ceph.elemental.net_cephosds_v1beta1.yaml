@@ -3046,6 +3046,9 @@ spec:
                         db:
                           minLength: 1
                           type: string
+                        wal:
+                          minLength: 1
+                          type: string
                       required:
                       - data
                       type: object

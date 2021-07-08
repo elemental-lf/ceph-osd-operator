@@ -10,8 +10,10 @@ spec:
       osds:
         - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-1'
           db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part1'
+          wal: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part2'
         - data: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-2'
-          db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part2'
+          db: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part3'
+          wal: '/dev/disk/by-slot/pci-0000:5c:00.0-encl-0:7:0-slot-10-part4'
   updateDomain: "Host"
   podTemplate:
     apiVersion: v1
@@ -25,7 +27,10 @@ spec:
           command:
             - /bin/sh
             - -c
-            - sleep 60; touch /tmp/healthy; sleep 365d
+            - >
+              sleep 11;
+              [ "$TEST" == "test123" ] && [ -n "$OSD_DEVICE" ] && [ -n "$OSD_DB_DEVICE" ] && [ -n "$OSD_WAL_DEVICE" ] && touch /tmp/healthy;
+              sleep 365d
           env:
             - name: "TEST"
               value: "test123"
