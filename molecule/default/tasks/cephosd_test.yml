@@ -13,7 +13,19 @@
     wait: yes
   loop: '{{ samples_resources.stdout | from_yaml_all | list }}'
 
-- name: Get all OSD pods in {{ namespace }}
+- name: Ensure that four OSD replica sets are present
+  k8s_info:
+    api_version: apps/v1
+    kind: ReplicaSet
+    namespace: '{{ namespace }}'
+    label_selectors:
+      - "role = osd"
+  register: osd_replica_sets
+  retries: 20
+  delay: 2
+  until: (osd_replica_sets.resources | length) == 4
+
+- name: Ensure that four OSD pods are present
   k8s_info:
     api_version: v1
     kind: Pod
@@ -24,3 +36,44 @@
   retries: 20
   delay: 2
   until: (osd_pods.resources | length) == 4
+
+- name: Delete all replica sets
+  k8s:
+    state: absent
+    api_version: apps/v1
+    kind: ReplicaSet
+    namespace: '{{ namespace }}'
+    name: '{ item.metadata.name }'
+  loop: '{{ osd_replica_sets.resources }}'
+
+- name: Ensure that four OSD replica sets are present again
+  k8s_info:
+    api_version: apps/v1
+    kind: ReplicaSet
+    namespace: '{{ namespace }}'
+    label_selectors:
+      - "role = osd"
+  register: osd_replica_sets
+  retries: 20
+  delay: 2
+  until: (osd_replica_sets.resources | length) == 4
+
+- name: Delete custom resource
+  k8s:
+    state: absent
+    api_version: ceph.elemental.net/v1alpha1
+    kind: CephOSD
+    namespace: '{{ namespace }}'
+    name: osdk-ceph-osds
+
+- name: Ensure that no OSD replica sets are present
+  k8s_info:
+    api_version: apps/v1
+    kind: ReplicaSet
+    namespace: '{{ namespace }}'
+    label_selectors:
+      - "role = osd"
+  register: osd_replica_sets
+  retries: 20
+  delay: 2
+  until: (osd_replica_sets.resources | length) == 0

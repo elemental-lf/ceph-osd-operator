@@ -87,7 +87,7 @@ to the schema in the future.
 
 ### Pod states and rolling update state machine
 
-Each pod has an annotation named `ceph.elemental.net/pod-state` tracking its state. These states are:
+Each pod has an annotation named `ceph.elemental.net/state` tracking its state. These states are:
 
 * `up-to-date`: The pod looks fine and its configuration is up-to-date.
 * `out-of-date` The pod looks fine but its configuration is out-of-date and it will be updated by recreating it.
@@ -133,7 +133,7 @@ halts and it requires manual intervention by an administrator. Options for the a
  
 ### Recommendations for the pod template
 
-The `restartPolicy` in the pod template should be `Always`. In addition the following tolerations should be included
+The `restartPolicy` in the pod template should be `Always`. In addition, the following tolerations should be included
 to prevent eviction under these conditions:
 
 ```yaml

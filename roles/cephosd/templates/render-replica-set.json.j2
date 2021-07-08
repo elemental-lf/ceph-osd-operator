@@ -1,10 +1,11 @@
-{% set ceph_osd_pod_definition = ceph_osd_pod_template
-                                  | combine(lookup('template', 'pod-definition-additions.yaml.j2') | from_yaml, recursive=True) %}
+{% set ceph_osd_rs_definition = {'spec': {'template': ceph_osd_pod_template}}
+                                  | combine({'metadata': {'labels': ceph_osd_pod_template.metadata.labels}},
+                                    lookup('template', 'replica-set-template.yaml.j2') | from_yaml, recursive=True) %}
 {% set containers_list = [] %}
-{% if 'initContainers' in ceph_osd_pod_definition.spec and ceph_osd_pod_definition.spec.initContainers %}
-{%   do containers_list.append(ceph_osd_pod_definition.spec.initContainers) %}
+{% if 'initContainers' in ceph_osd_rs_definition.spec.template.spec and ceph_osd_rs_definition.spec.template.spec.initContainers %}
+{%   do containers_list.append(ceph_osd_rs_definition.spec.template.spec.initContainers) %}
 {% endif %}
-{% do containers_list.append(ceph_osd_pod_definition.spec.containers) %}
+{% do containers_list.append(ceph_osd_rs_definition.spec.template.spec.containers) %}
 {% for containers in containers_list %}
 {%   for container in containers %}
 {%     do container.update({'env': []}) if 'env' not in container %}
@@ -14,4 +15,4 @@
 {%   endfor %}
 {% endfor %}
 
-{{ ceph_osd_pod_definition | to_json }}
+{{ ceph_osd_rs_definition | to_json }}

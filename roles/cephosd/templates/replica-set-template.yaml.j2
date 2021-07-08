@@ -1,0 +1,50 @@
+apiVersion: v1
+apiGroup: apps
+kind: ReplicaSet
+metadata:
+  name: {{ ceph_osd_name }}
+  namespace: {{ ceph_osd_cr_namespace }}
+  labels:
+    {{ ceph_osd_cr_api_group }}/owner: "{{ ceph_osd_cr_kind }}-{{ ceph_osd_cr_name }}"
+  annotations:
+    {{ ceph_osd_cr_api_group }}/template-hash: "{{ ceph_osd_template_hash }}"
+    {{ ceph_osd_cr_api_group }}/host: "{{ ceph_osd_host }}"
+    {{ ceph_osd_cr_api_group }}/data: "{{ ceph_osd_data }}"
+{% if ceph_osd_db %}
+    {{ ceph_osd_cr_api_group }}/db: "{{ ceph_osd_db }}"
+{% endif %}
+{% if ceph_osd_wal %}
+    {{ ceph_osd_cr_api_group }}/wal: "{{ ceph_osd_wal }}"
+{% endif %}
+    {{ ceph_osd_cr_api_group }}/state: "up-to-date"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{ ceph_osd_cr_api_group }}/osd: "{{ ceph_osd_name }}"
+      {{ ceph_osd_cr_api_group }}/template-hash: "{{ ceph_osd_template_hash }}"
+  template:
+    metadata:
+      labels:
+        {{ ceph_osd_cr_api_group }}/owner: "{{ ceph_osd_cr_kind }}-{{ ceph_osd_cr_name }}"
+        {{ ceph_osd_cr_api_group }}/osd: "{{ ceph_osd_name }}"
+        {{ ceph_osd_cr_api_group }}/template-hash: "{{ ceph_osd_template_hash }}"
+      annotations:
+        {{ ceph_osd_cr_api_group }}/host: "{{ ceph_osd_host }}"
+        {{ ceph_osd_cr_api_group }}/data: "{{ ceph_osd_data }}"
+{% if ceph_osd_db %}
+        {{ ceph_osd_cr_api_group }}/db: "{{ ceph_osd_db }}"
+{% endif %}
+{% if ceph_osd_wal %}
+        {{ ceph_osd_cr_api_group }}/wal: "{{ ceph_osd_wal }}"
+{% endif %}
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - "{{ ceph_osd_host }}"

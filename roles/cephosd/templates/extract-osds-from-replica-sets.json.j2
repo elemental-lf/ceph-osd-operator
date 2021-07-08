@@ -4,14 +4,14 @@
 {% set outofdate = {} %}
 {% set invalid = [] %}
 
-{% for item in k8s_gvks %}
+{% for item in ceph_osd_installed_replica_sets %}
 {%   if 'deletionTimestamp' in item.metadata %}
 {%     continue %}
 {%   elif [ceph_osd_cr_api_group + '/host',
-           ceph_osd_cr_api_group + '/pod-template-hash',
+           ceph_osd_cr_api_group + '/template-hash',
            ceph_osd_cr_api_group + '/data'] is subset(item.metadata.annotations.keys()) %}
 {%     set host = item.metadata.annotations[ceph_osd_cr_api_group + '/host'] %}
-{%     set pod_template_hash =  item.metadata.annotations[ceph_osd_cr_api_group + '/pod-template-hash'] %}
+{%     set template_hash =  item.metadata.annotations[ceph_osd_cr_api_group + '/template-hash'] %}
 {%     set osd = {} %}
 {%     do osd.update({'data': item.metadata.annotations[ceph_osd_cr_api_group + '/data']}) %}
 {%     do osd.update({'db': item.metadata.annotations[ceph_osd_cr_api_group + '/db']})
@@ -19,36 +19,30 @@
 {%     do osd.update({'wal': item.metadata.annotations[ceph_osd_cr_api_group + '/wal']})
                     if (ceph_osd_cr_api_group + '/wal') in item.metadata.annotations %}
 
-{%     set pod_name_prefix = ('osd-{}-{}-'.format(host | regex_replace('^([^\.]+)(?:\..+)?$', '\\1'), osd.data | regex_replace('^.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')))[:58] %}
-{%     set pod_key = '{}:{}'.format(host, osd.data) %}
-{%     if pod_key in uptodate or pod_key in ready or pod_key in unready or pod_key in outofdate %}
+{%     set name_prefix = ('osd-{}-{}-'.format(host | regex_replace('^([^\.]+)(?:\..+)?$', '\\1'), osd.data | regex_replace('^.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')))[:58] %}
+{%     set osd_key = '{}:{}'.format(host, osd.data) %}
+{%     if osd_key in uptodate or osd_key in ready or osd_key in unready or osd_key in outofdate %}
 {%       do invalid.append(item.metadata.name) %}
-{%     elif not item.metadata.name.startswith(pod_name_prefix) %}
+{%     elif not item.metadata.name.startswith(name_prefix) %}
 {%       do invalid.append(item.metadata.name) %}
-{%     elif pod_template_hash == ceph_osd_pod_template_hash %}
+{%     elif template_hash == ceph_osd_template_hash %}
 {%       set ns = {} %}
 {%       do ns.update({'target_dict': uptodate}) %}
-{%       if (ceph_osd_cr_api_group + '/pod-state') in item.metadata.annotations and item.metadata.annotations[ceph_osd_cr_api_group + '/pod-state'] == 'wait-for-ready' %}
-{%         do ns.update({'pod_ready': False}) %}
-{%         for condition in item.status.conditions %}
-{%           if condition.type == 'Ready' and condition.status == 'True' %}
-{%             do ns.update({'pod_ready': True}) %}
-{%           endif %}
-{%         endfor %}
-{%         if ns.pod_ready  %}
+{%       if (ceph_osd_cr_api_group + '/state') in item.metadata.annotations and item.metadata.annotations[ceph_osd_cr_api_group + '/state'] == 'wait-for-ready' %}
+{%         if 'readyReplicas' in item.status and item.status.readyReplicas == 1 %}
 {%           do ns.update({'target_dict': ready}) %}
 {%         else %}
 {%           do ns.update({'target_dict': unready}) %}
 {%         endif %}
 {%       endif %}
-{%       do ns.target_dict.update({pod_key: {'host': host,
-                                             'pod': item,
-                                             'pod_name_prefix': pod_name_prefix,
+{%       do ns.target_dict.update({osd_key: {'host': host,
+                                             'manifest': item,
+                                             'name_prefix': name_prefix,
                                              'osd': osd}}) %}
 {%     else %}
-{%       do outofdate.update({pod_key: {'host': host,
-                                        'pod': item,
-                                        'pod_name_prefix': pod_name_prefix,
+{%       do outofdate.update({osd_key: {'host': host,
+                                        'manifest': item,
+                                        'name_prefix': name_prefix,
                                         'osd': osd}}) %}
 {%     endif %}
 {%   else %}

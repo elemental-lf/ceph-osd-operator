@@ -1,0 +1,12 @@
+{% set osds = {} %}
+{% for item in ceph_osd_storage %}
+{%   for host in item.hosts %}
+{%      for osd in item.osds %}
+{%        set name_prefix = ('osd-{}-{}-'.format(host | regex_replace('^([^\.]+)(?:\..+)?$', '\\1'), osd.data | regex_replace('^.+/([^/]+)$', '\\1') | regex_replace('[^\\w]','-')))[:58] %}
+{%        set osd_key = '{}:{}'.format(host, osd.data) %}
+{%        set _ = osds.update({osd_key: {'host': host, 'name_prefix': name_prefix, 'osd': osd}}) %}
+{%      endfor %}
+{%   endfor %}
+{% endfor %}
+
+{{ osds | to_json }}
