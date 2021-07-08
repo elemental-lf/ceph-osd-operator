@@ -14,5 +14,7 @@ k8s_resource('osdk-ceph-osds',
              objects=['osdk-ceph-osd:PriorityClass'])
 
 
+# listdir is used to trigger reevaluation of the Tiltfile and so an update of the manifests
+_ = listdir('config', recursive=True)
 k8s_yaml(local('kustomize build --load-restrictor LoadRestrictionsNone config/testing', quiet=True))
 k8s_yaml(local('kustomize build --load-restrictor LoadRestrictionsNone config/samples', quiet=True))
