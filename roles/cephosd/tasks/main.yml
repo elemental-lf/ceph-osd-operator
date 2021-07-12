@@ -28,9 +28,26 @@
                             label_selector=ceph_osd_cr_api_group + '/owner=' + ceph_osd_cr_kind + '-' + ceph_osd_cr_name) }}"
       no_log: yes
   rescue:
+    - debug:
+        msg: '{{ ansible_failed_result }}'
     - name: no installed replica sets found
       set_fact:
         ceph_osd_installed_replica_sets: []
+
+# This will search for pods that we own but which directly reference the custom resource.
+- block:
+    - name: lookup pods from previous operator versions
+      set_fact:
+        ceph_osd_installed_old_pods: "{{ query('k8s', api_version='v1', kind='Pod', namespace=ceph_osd_cr_namespace,
+                            label_selector=ceph_osd_cr_api_group + '/owner=' + ceph_osd_cr_kind + '-' + ceph_osd_cr_name)
+                              | selectattr('metadata.ownerReferences.0.kind', 'equalto', ceph_osd_cr_kind) | map(attribute='metadata.name') | list }}"
+      no_log: yes
+  rescue:
+    - debug:
+        msg: '{{ ansible_failed_result }}'
+    - name: no pods from previous operator versions found
+      set_fact:
+        ceph_osd_installed_old_pods: []
 
 - name: build list of osds from configuration
   set_fact:
@@ -68,6 +85,9 @@
     msg: "Invalid: {{ ceph_osd_osds.invalid | sort | join(', ') }}"
 
 - debug:
+    msg: "Pods from previous versions: {{ ceph_osd_installed_old_pods | sort | join(', ') }}"
+
+- debug:
     msg: "Up-to-date: {{ ceph_osd_osds.uptodate.keys() | sort | join(', ') }}"
 
 - debug:
@@ -78,6 +98,15 @@
 
 - debug:
     msg: "Unready: {{ ceph_osd_osds.unready.keys() | sort | join(', ') }}"
+
+- name: delete pods from previous operator versions
+  k8s:
+    state: absent
+    api_version: v1
+    kind: Pod
+    namespace: "{{ ceph_osd_cr_namespace }}"
+    name: "{{ item }}"
+  loop: "{{ ceph_osd_installed_old_pods }}"
 
 - name: delete invalid replica sets
   k8s:
