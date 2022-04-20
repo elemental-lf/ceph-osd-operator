@@ -1,4 +1,4 @@
-FROM quay.io/operator-framework/ansible-operator:v1.8.0
+FROM quay.io/operator-framework/ansible-operator:v1.19.1
 
 USER 0
 RUN echo 'jinja2_extensions = jinja2.ext.do,jinja2.ext.loopcontrols' >> /etc/ansible/ansible.cfg
