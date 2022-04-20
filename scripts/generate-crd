@@ -7,7 +7,9 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 if [[ ! -d ./k8s-crd-resolver ]]; then 
     python3 -m venv ./k8s-crd-resolver
     . ./k8s-crd-resolver/bin/activate
-    pip install git+http://github.com/elemental-lf/k8s-crd-resolver
+    pip install --upgrade pip wheel
+    pip install -r https://raw.githubusercontent.com/elemental-lf/k8s-crd-resolver/master/requirements.txt
+    pip install git+https://github.com/elemental-lf/k8s-crd-resolver/
 else
     . ./k8s-crd-resolver/bin/activate
 fi
