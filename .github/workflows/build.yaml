@@ -39,7 +39,7 @@ jobs:
 
       - name: Determine git version information
         id: git-version
-        uses: elemental-lf/git-version-action@dcbd94cbd269ce0b9fb877e96c1a1d14add7984a
+        uses: elemental-lf/git-version-action@e5baadd2d973a99bbc1789f78b2dc8c2f004c317
 
       - name: Build and push container image (triggered by branch push)
         uses: docker/build-push-action@v2
