@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - uses: styfle/cancel-workflow-action@0.8.0
+      - uses: styfle/cancel-workflow-action@0.11.0
         with:
           workflow_id: build.yaml
           access_token: ${{ github.token }}
@@ -58,13 +58,13 @@ jobs:
       - testing
     steps:
       - name: Checkout repository files
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           # This is needed so we can determine the version properly from git history.
           fetch-depth: 0
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -75,7 +75,7 @@ jobs:
         uses: elemental-lf/git-version-action@e5baadd2d973a99bbc1789f78b2dc8c2f004c317
 
       - name: Build and push container image (triggered by branch push)
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         if: "${{ steps.git-version.outputs.git-branch != '' }}"
         with:
           context: .
@@ -86,7 +86,7 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/ceph-osd-operator:${{ steps.git-version.outputs.git-branch }}
 
       - name: Build and push container image (release, triggered by tag push)
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         if: "${{ steps.git-version.outputs.git-tag != '' && steps.git-version.outputs.release == 'true' }}"
         with:
           context: .
